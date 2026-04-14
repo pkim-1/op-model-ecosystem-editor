@@ -52,15 +52,17 @@ Source: index.html (existing values), RESEARCH.md Pattern 3
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body (card description) | 0.9rem (14.4px) | 400 | 1.4 |
-| Label (type badge) | 0.7rem (11.2px) | 600 | 1.0 |
+| Label (type badge) | 0.7rem (11.2px) | 700 | 1.0 |
 | Heading (card name) | 1.1rem (17.6px) | 700 (bold) | 1.2 |
 | Display (page title) | 1.8rem (28.8px) | 700 (bold) | 1.2 |
 
 Badge-specific typography (new for this phase):
 - Font size: 0.7rem (D-12)
-- Font weight: 600 (semibold, matching .language-badge)
+- Font weight: 700 (bold, consistent with heading weight scale)
 - Text transform: uppercase (D-12)
 - Letter spacing: 0.03em (RESEARCH.md Pattern 3)
+
+Font weights used: 400 (normal), 700 (bold). Two weights only.
 
 Source: CONTEXT.md D-12, index.html existing styles
 
@@ -102,7 +104,7 @@ Source: CONTEXT.md D-09, D-10; index.html CSS custom properties
 | Padding | 4px 8px | D-12 (adjusted to spacing scale) |
 | Border radius | 12px | D-12 |
 | Font size | 0.7rem | D-12 |
-| Font weight | 600 | Matches .language-badge |
+| Font weight | 700 | Consistent with heading weight scale |
 | Text transform | uppercase | D-12 |
 | Letter spacing | 0.03em | RESEARCH.md |
 | Box shadow | 0 1px 3px rgba(0,0,0,0.15) | D-02 (subtle shadow) |
