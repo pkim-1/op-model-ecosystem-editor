@@ -81,6 +81,12 @@ Items acknowledged and carried forward from previous milestone close:
 |----------|------|--------|-------------|
 | *(none)* | | | |
 
+## Quick Tasks Completed
+
+| Date | Slug | Title | Summary |
+|------|------|-------|---------|
+| 2026-04-14 | 260414-grn | Private repo visibility fix | Switched to authenticated `/user/repos` endpoint when token present |
+
 ## Session Continuity
 
 Last session: 2026-04-14T08:24:32.681Z
