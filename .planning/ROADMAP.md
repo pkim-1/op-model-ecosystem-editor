@@ -46,7 +46,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 02-01-PLAN.md -- Search input, sort dropdown, and core filtering engine with URL hash state
-- [ ] 02-02-PLAN.md -- Topic and language filter chips with visual verification
+- [x] 02-02-PLAN.md -- Topic and language filter chips with visual verification
 **UI hint**: yes
 
 ### Phase 3: Visual Type Indicators
