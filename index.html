@@ -63,6 +63,7 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       cursor: pointer;
       transition: all 0.2s ease;
+      position: relative;
     }
 
     .card:hover {
@@ -134,6 +135,26 @@
       font-size: 0.75rem;
       font-weight: 600;
     }
+
+    .type-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      display: inline-block;
+      color: #FFFFFF;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      z-index: 1;
+    }
+
+    .type-badge.tool { background: #4248ED; }
+    .type-badge.analysis { background: #FF8C00; }
+    .type-badge.visualization { background: #9B59B6; }
 
     #status {
       text-align: center;
@@ -513,6 +534,26 @@
       promptEl.appendChild(skipSpan);
     }
 
+    // --- Type Detection ---
+    const TYPE_KEYWORDS = {
+      analysis: ['analysis', 'data-science', 'jupyter', 'research', 'statistics', 'analytics'],
+      tool: ['tool', 'cli', 'library', 'framework', 'utility', 'automation', 'dashboard'],
+      visualization: ['visualization', 'dashboard', 'chart', 'graph', 'plot', 'dataviz'],
+    };
+
+    function detectType(topics) {
+      if (!topics || topics.length === 0) return null;
+      for (const topic of topics) {
+        const lower = topic.toLowerCase();
+        for (const [type, keywords] of Object.entries(TYPE_KEYWORDS)) {
+          if (keywords.some(kw => lower.includes(kw))) {
+            return type;
+          }
+        }
+      }
+      return null;
+    }
+
     // --- Card Rendering ---
     function renderCard(repo) {
       const card = document.createElement('article');
@@ -529,8 +570,19 @@
         }
       });
 
+      const type = detectType(repo.topics);
+      if (type) {
+        const badge = document.createElement('span');
+        badge.className = `type-badge ${type}`;
+        badge.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+        card.appendChild(badge);
+      }
+
       const name = document.createElement('h3');
       name.className = 'card-name';
+      if (type) {
+        name.style.paddingTop = '24px';
+      }
       name.textContent = repo.name;
       card.appendChild(name);
 
