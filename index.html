@@ -83,6 +83,38 @@
       line-height: 1.4;
     }
 
+    .project-card {
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+    }
+
+    .project-card:focus-visible {
+      outline: 2px solid var(--pacific-blue);
+      outline-offset: 2px;
+    }
+
+    .card-description {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .card-topics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
     .topic-chip {
       display: inline-block;
       background: var(--light-gray);
@@ -313,9 +345,68 @@
       promptEl.appendChild(skipSpan);
     }
 
-    // --- Render Stub (Plan 02 will implement) ---
+    // --- Card Rendering ---
+    function renderCard(repo) {
+      const card = document.createElement('article');
+      card.className = 'project-card card';
+      card.addEventListener('click', () => {
+        window.open(repo.html_url, '_blank', 'noopener,noreferrer');
+      });
+      card.setAttribute('role', 'link');
+      card.setAttribute('tabindex', '0');
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          window.open(repo.html_url, '_blank', 'noopener,noreferrer');
+        }
+      });
+
+      const name = document.createElement('h3');
+      name.className = 'card-name';
+      name.textContent = repo.name;
+      card.appendChild(name);
+
+      if (repo.description) {
+        const desc = document.createElement('p');
+        desc.className = 'card-description';
+        desc.textContent = repo.description;
+        card.appendChild(desc);
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'card-meta';
+
+      if (repo.topics && repo.topics.length > 0) {
+        const topicsDiv = document.createElement('div');
+        topicsDiv.className = 'card-topics';
+        repo.topics.forEach(topic => {
+          const chip = document.createElement('span');
+          chip.className = 'topic-chip';
+          chip.textContent = topic;
+          topicsDiv.appendChild(chip);
+        });
+        meta.appendChild(topicsDiv);
+      }
+
+      if (repo.language) {
+        const lang = document.createElement('span');
+        lang.className = 'language-badge';
+        lang.textContent = repo.language;
+        meta.appendChild(lang);
+      }
+
+      card.appendChild(meta);
+      return card;
+    }
+
     function renderGrid(repos) {
-      console.log('Fetched', repos.length, 'repos', repos);
+      const grid = document.getElementById('project-grid');
+      grid.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      repos.forEach(repo => {
+        fragment.appendChild(renderCard(repo));
+      });
+      grid.appendChild(fragment);
     }
 
     // --- Main Initialization ---
