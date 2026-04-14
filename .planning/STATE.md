@@ -86,6 +86,7 @@ Items acknowledged and carried forward from previous milestone close:
 | Date | Slug | Title | Summary |
 |------|------|-------|---------|
 | 2026-04-14 | 260414-grn | Private repo visibility fix | Switched to authenticated `/user/repos` endpoint when token present |
+| 2026-04-14 | 260414-gzw | Card link homepage preference | Cards open `repo.homepage` (deployed tool) instead of GitHub repo when available |
 
 ## Session Continuity
 
