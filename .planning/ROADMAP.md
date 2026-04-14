@@ -45,7 +45,7 @@ Plans:
   4. User can sort the project list by most recently updated
 **Plans:** 2 plans
 Plans:
-- [ ] 02-01-PLAN.md -- Search input, sort dropdown, and core filtering engine with URL hash state
+- [x] 02-01-PLAN.md -- Search input, sort dropdown, and core filtering engine with URL hash state
 - [ ] 02-02-PLAN.md -- Topic and language filter chips with visual verification
 **UI hint**: yes
 
