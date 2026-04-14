@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. The dashboard works without a GitHub token (unauthenticated) and optionally accepts a PAT for higher rate limits
 **Plans:** 2 plans
 Plans:
-- [ ] 01-01-PLAN.md -- HTML structure, CSS, and GitHub API client with pagination/auth/error handling
+- [x] 01-01-PLAN.md -- HTML structure, CSS, and GitHub API client with pagination/auth/error handling
 - [ ] 01-02-PLAN.md -- Card rendering, responsive grid display, and visual verification
 **UI hint**: yes
 
