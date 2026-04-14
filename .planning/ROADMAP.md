@@ -56,7 +56,9 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Each project card displays a color-coded badge indicating its type (analysis, tool, visualization, etc.)
   2. Badge types are derived from GitHub topics -- no manual configuration needed
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 03-01-PLAN.md -- Type badge CSS, keyword detection logic, and card rendering integration
 **UI hint**: yes
 
 ## Progress
@@ -68,4 +70,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Data Foundation & Card Display | 2/2 | Complete | 2026-04-14 |
 | 2. Search & Filtering | 0/2 | Not started | - |
-| 3. Visual Type Indicators | 0/TBD | Not started | - |
+| 3. Visual Type Indicators | 0/1 | Not started | - |
