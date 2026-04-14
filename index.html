@@ -306,6 +306,11 @@
       apiBase: 'https://api.github.com',
     };
 
+    // --- Filter State ---
+    window.currentSearch = '';
+    window.activeTopics = [];
+    window.activeLanguages = [];
+
     // --- Token Management ---
     function getToken() {
       return localStorage.getItem('github_token') || null;
@@ -507,6 +512,185 @@
       grid.appendChild(fragment);
     }
 
+    // --- Filtering Engine ---
+    function applyFilters() {
+      const searchInput = document.getElementById('search-input');
+      const sortSelect = document.getElementById('sort-select');
+      const countEl = document.getElementById('repo-count');
+      const noResultsEl = document.getElementById('no-results');
+      const gridEl = document.getElementById('project-grid');
+
+      const search = window.currentSearch;
+      const topics = window.activeTopics;
+      const languages = window.activeLanguages;
+      const sortValue = sortSelect.value;
+
+      let filtered = (window.allRepos || []).slice();
+
+      if (search) {
+        filtered = filtered.filter(repo => {
+          const name = (repo.name || '').toLowerCase();
+          const desc = (repo.description || '').toLowerCase();
+          const repoTopics = repo.topics || [];
+          return name.includes(search) ||
+                 desc.includes(search) ||
+                 repoTopics.some(t => t.toLowerCase().includes(search));
+        });
+      }
+
+      if (topics.length > 0) {
+        filtered = filtered.filter(repo => {
+          const repoTopics = repo.topics || [];
+          return topics.every(t => repoTopics.includes(t));
+        });
+      }
+
+      if (languages.length > 0) {
+        filtered = filtered.filter(repo => {
+          return repo.language && languages.includes(repo.language);
+        });
+      }
+
+      if (sortValue === 'updated-desc') {
+        filtered.sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
+      } else if (sortValue === 'updated-asc') {
+        filtered.sort((a, b) => new Date(a.pushed_at) - new Date(b.pushed_at));
+      } else if (sortValue === 'name-asc') {
+        filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      }
+
+      renderGrid(filtered);
+
+      const total = (window.allRepos || []).length;
+      if (filtered.length === total) {
+        countEl.textContent = `Showing ${total} repositories`;
+      } else {
+        countEl.textContent = `Showing ${filtered.length} of ${total} repositories`;
+      }
+
+      if (filtered.length === 0 && total > 0) {
+        noResultsEl.style.display = '';
+        gridEl.style.display = 'none';
+      } else {
+        noResultsEl.style.display = 'none';
+        gridEl.style.display = '';
+      }
+
+      updateHash();
+    }
+
+    // --- URL Hash Sync ---
+    function updateHash() {
+      const parts = [];
+      if (window.currentSearch) {
+        parts.push('search=' + encodeURIComponent(window.currentSearch));
+      }
+      if (window.activeTopics.length > 0) {
+        parts.push('topic=' + window.activeTopics.map(encodeURIComponent).join(','));
+      }
+      if (window.activeLanguages.length > 0) {
+        parts.push('lang=' + window.activeLanguages.map(encodeURIComponent).join(','));
+      }
+      const sortSelect = document.getElementById('sort-select');
+      if (sortSelect && sortSelect.value !== 'updated-desc') {
+        parts.push('sort=' + sortSelect.value);
+      }
+      window.location.hash = parts.length > 0 ? parts.join('&') : '';
+    }
+
+    function readHash() {
+      const hash = window.location.hash.replace(/^#/, '');
+      const searchInput = document.getElementById('search-input');
+      const sortSelect = document.getElementById('sort-select');
+      const clearBtn = document.getElementById('search-clear');
+
+      if (!hash) {
+        window.currentSearch = '';
+        window.activeTopics = [];
+        window.activeLanguages = [];
+        if (searchInput) searchInput.value = '';
+        if (sortSelect) sortSelect.value = 'updated-desc';
+        if (clearBtn) clearBtn.style.display = 'none';
+        applyFilters();
+        return;
+      }
+
+      const pairs = hash.split('&');
+      let hasValidPair = false;
+
+      window.currentSearch = '';
+      window.activeTopics = [];
+      window.activeLanguages = [];
+      if (sortSelect) sortSelect.value = 'updated-desc';
+
+      for (const pair of pairs) {
+        const eqIndex = pair.indexOf('=');
+        if (eqIndex === -1) continue;
+        const key = pair.substring(0, eqIndex);
+        const value = pair.substring(eqIndex + 1);
+        if (!value) continue;
+
+        hasValidPair = true;
+
+        if (key === 'search') {
+          const decoded = decodeURIComponent(value);
+          window.currentSearch = decoded.toLowerCase();
+          if (searchInput) searchInput.value = decoded;
+        } else if (key === 'topic') {
+          window.activeTopics = value.split(',').map(decodeURIComponent).filter(Boolean);
+        } else if (key === 'lang') {
+          window.activeLanguages = value.split(',').map(decodeURIComponent).filter(Boolean);
+        } else if (key === 'sort') {
+          const validSorts = ['updated-desc', 'updated-asc', 'name-asc'];
+          if (validSorts.includes(value) && sortSelect) {
+            sortSelect.value = value;
+          }
+        }
+      }
+
+      if (!hasValidPair) {
+        if (searchInput) searchInput.value = '';
+        if (clearBtn) clearBtn.style.display = 'none';
+      }
+
+      if (searchInput) {
+        clearBtn.style.display = searchInput.value ? '' : 'none';
+      }
+
+      applyFilters();
+    }
+
+    window.addEventListener('hashchange', readHash);
+
+    // --- Wire Controls ---
+    document.getElementById('search-input').addEventListener('input', function() {
+      window.currentSearch = this.value.toLowerCase();
+      document.getElementById('search-clear').style.display = this.value ? '' : 'none';
+      applyFilters();
+    });
+
+    document.getElementById('search-clear').addEventListener('click', function() {
+      const searchInput = document.getElementById('search-input');
+      searchInput.value = '';
+      window.currentSearch = '';
+      this.style.display = 'none';
+      applyFilters();
+    });
+
+    document.getElementById('sort-select').addEventListener('change', applyFilters);
+
+    document.getElementById('clear-filters-btn').addEventListener('click', function() {
+      const searchInput = document.getElementById('search-input');
+      const sortSelect = document.getElementById('sort-select');
+      searchInput.value = '';
+      window.currentSearch = '';
+      window.activeTopics = [];
+      window.activeLanguages = [];
+      sortSelect.value = 'updated-desc';
+      document.getElementById('search-clear').style.display = 'none';
+      applyFilters();
+    });
+
     // --- Main Initialization ---
     async function initDashboard() {
       const statusEl = document.getElementById('status');
@@ -550,6 +734,8 @@
 
         countEl.textContent = `Showing ${repos.length} repositories`;
         renderGrid(repos);
+        document.getElementById('controls').style.display = '';
+        readHash();
       } catch (err) {
         if (err.message === 'RATE_LIMITED') {
           showError('GitHub API rate limit reached. Unauthenticated requests are limited to 60 per hour.', true, true);
