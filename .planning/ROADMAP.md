@@ -12,7 +12,7 @@ Build a single-file GitHub project dashboard in three phases: first fetch and di
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Data Foundation & Card Display** - Fetch all GitHub repos and render browsable project cards in a responsive layout
+- [x] **Phase 1: Data Foundation & Card Display** - Fetch all GitHub repos and render browsable project cards in a responsive layout
 - [ ] **Phase 2: Search & Filtering** - Add keyword search, topic/language filtering, and recency sorting
 - [ ] **Phase 3: Visual Type Indicators** - Add color-coded badges for project type classification
 
@@ -43,7 +43,10 @@ Plans:
   2. User can select a topic tag to show only projects with that topic
   3. User can select a programming language to show only projects in that language
   4. User can sort the project list by most recently updated
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 02-01-PLAN.md -- Search input, sort dropdown, and core filtering engine with URL hash state
+- [ ] 02-02-PLAN.md -- Topic and language filter chips with visual verification
 **UI hint**: yes
 
 ### Phase 3: Visual Type Indicators
@@ -63,6 +66,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Foundation & Card Display | 0/2 | Not started | - |
-| 2. Search & Filtering | 0/TBD | Not started | - |
+| 1. Data Foundation & Card Display | 2/2 | Complete | 2026-04-14 |
+| 2. Search & Filtering | 0/2 | Not started | - |
 | 3. Visual Type Indicators | 0/TBD | Not started | - |
