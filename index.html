@@ -353,6 +353,7 @@
   <header>
     <h1>Project Dashboard</h1>
     <span id="repo-count"></span>
+    <button id="token-btn" style="margin-top: 8px; padding: 6px 12px; background: var(--pacific-blue); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">🔒 Add Token for Private Repos</button>
   </header>
   <div id="controls" style="display:none;">
     <div id="search-sort-row">
@@ -426,7 +427,10 @@
       let page = 1;
 
       while (true) {
-        const url = `${CONFIG.apiBase}/users/${CONFIG.username}/repos?per_page=${CONFIG.perPage}&page=${page}&sort=updated&type=owner`;
+        const token = getToken();
+        const url = token
+          ? `${CONFIG.apiBase}/user/repos?per_page=${CONFIG.perPage}&page=${page}&sort=updated&affiliation=owner`
+          : `${CONFIG.apiBase}/users/${CONFIG.username}/repos?per_page=${CONFIG.perPage}&page=${page}&sort=updated&type=owner`;
         const response = await fetch(url, { headers: getHeaders() });
 
         if (response.status === 403) {
@@ -951,6 +955,11 @@
         }
       }
     }
+
+    // --- Token Button Handler ---
+    document.getElementById('token-btn').addEventListener('click', () => {
+      showTokenPrompt();
+    });
 
     // --- Auto-start ---
     initDashboard();
