@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 2 plans
 Plans:
 - [x] 01-01-PLAN.md -- HTML structure, CSS, and GitHub API client with pagination/auth/error handling
-- [ ] 01-02-PLAN.md -- Card rendering, responsive grid display, and visual verification
+- [x] 01-02-PLAN.md -- Card rendering, responsive grid display, and visual verification
 **UI hint**: yes
 
 ### Phase 2: Search & Filtering
