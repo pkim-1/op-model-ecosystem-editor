@@ -17,13 +17,13 @@ Quickly find and access any project through search and filtering, without manual
 - [x] Click project card to open GitHub repo or hosted page — Validated in Phase 1: Data Foundation & Card Display
 - [x] Use GitHub repo description for project purpose — Validated in Phase 1: Data Foundation & Card Display
 - [x] Use GitHub topics for tags and categorization — Validated in Phase 1: Data Foundation & Card Display
+- [x] Search projects by keyword or tag — Validated in Phase 2: Search & Filtering
+- [x] Filter projects by date/recency — Validated in Phase 2: Search & Filtering
+- [x] Filter projects by tech stack — Validated in Phase 2: Search & Filtering
 
 ### Active
 
-- [ ] Search projects by keyword or tag
 - [ ] Filter projects by type (analysis, tool, visualization, etc.)
-- [ ] Filter projects by date/recency
-- [ ] Filter projects by tech stack
 - [ ] Local projects can be uploaded to GitHub and included
 
 ### Out of Scope
@@ -77,4 +77,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 after Phase 1 completion*
+*Last updated: 2026-04-14 after Phase 2 completion*
