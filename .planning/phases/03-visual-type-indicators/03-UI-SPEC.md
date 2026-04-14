@@ -34,14 +34,14 @@ Declared values (must be multiples of 4):
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Topic chip gap, inline spacing |
-| sm | 8px | Card h3 margin-bottom, filter header gap |
+| sm | 8px | Card h3 margin-bottom, filter header gap, badge offset from card edge |
 | md | 16px | Default element spacing |
 | lg | 20px | Card padding, grid gap |
 | xl | 24px | Header padding, badge-to-title clearance |
 | 2xl | 32px | Not used this phase |
 | 3xl | 40px | Status/empty state padding |
 
-Exceptions: Badge offset from card corner uses 10px (top: 10px, left: 10px) per RESEARCH.md recommendation. This is not a spacing token -- it is a positioning coordinate relative to card edge, calculated as card padding (20px) minus badge visual inset (10px) for optical alignment.
+No exceptions. All spacing and positioning values use multiples of 4.
 
 Source: index.html (existing values), RESEARCH.md Pattern 3
 
@@ -95,11 +95,11 @@ Source: CONTEXT.md D-09, D-10; index.html CSS custom properties
 
 | Property | Value | Source |
 |----------|-------|--------|
-| Position | absolute, top: 10px, left: 10px | D-01, RESEARCH.md |
+| Position | absolute, top: 8px, left: 8px | D-01, spacing scale (sm token) |
 | Display | inline-block | RESEARCH.md Pattern 3 |
 | Background | per type (see badge colors above) | D-09 |
 | Color | #FFFFFF | D-10 |
-| Padding | 3px 10px | D-12 |
+| Padding | 4px 8px | D-12 (adjusted to spacing scale) |
 | Border radius | 12px | D-12 |
 | Font size | 0.7rem | D-12 |
 | Font weight | 600 | Matches .language-badge |
