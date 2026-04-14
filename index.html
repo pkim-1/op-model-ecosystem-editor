@@ -562,15 +562,16 @@
     function renderCard(repo) {
       const card = document.createElement('article');
       card.className = 'project-card card';
+      const cardUrl = (repo.homepage && repo.homepage.trim()) ? repo.homepage : repo.html_url;
       card.addEventListener('click', () => {
-        window.open(repo.html_url, '_blank', 'noopener,noreferrer');
+        window.open(cardUrl, '_blank', 'noopener,noreferrer');
       });
       card.setAttribute('role', 'link');
       card.setAttribute('tabindex', '0');
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          window.open(repo.html_url, '_blank', 'noopener,noreferrer');
+          window.open(cardUrl, '_blank', 'noopener,noreferrer');
         }
       });
 
