@@ -562,7 +562,9 @@
     function renderCard(repo) {
       const card = document.createElement('article');
       card.className = 'project-card card';
-      const cardUrl = (repo.homepage && repo.homepage.trim()) ? repo.homepage : repo.html_url;
+      const cardUrl = (repo.homepage && repo.homepage.trim())
+        ? repo.homepage
+        : `https://${CONFIG.username}.github.io/${repo.name === `${CONFIG.username}.github.io` ? '' : repo.name + '/'}`;
       card.addEventListener('click', () => {
         window.open(cardUrl, '_blank', 'noopener,noreferrer');
       });
