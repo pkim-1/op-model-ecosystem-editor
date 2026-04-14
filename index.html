@@ -175,6 +175,208 @@
       perPage: 100,
       apiBase: 'https://api.github.com',
     };
+
+    // --- Token Management ---
+    function getToken() {
+      return localStorage.getItem('github_token') || null;
+    }
+
+    function saveToken(token) {
+      localStorage.setItem('github_token', token);
+    }
+
+    function clearToken() {
+      localStorage.removeItem('github_token');
+    }
+
+    // --- Header Builder ---
+    function getHeaders() {
+      const headers = { 'Accept': 'application/vnd.github+json' };
+      const token = getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      return headers;
+    }
+
+    // --- Pagination-aware Fetch ---
+    async function fetchAllRepos() {
+      let allRepos = [];
+      let page = 1;
+
+      while (true) {
+        const url = `${CONFIG.apiBase}/users/${CONFIG.username}/repos?per_page=${CONFIG.perPage}&page=${page}&sort=updated&type=owner`;
+        const response = await fetch(url, { headers: getHeaders() });
+
+        if (response.status === 403) {
+          const remaining = response.headers.get('x-ratelimit-remaining');
+          if (remaining === '0') {
+            const err = new Error('RATE_LIMITED');
+            err.resetTime = response.headers.get('x-ratelimit-reset');
+            throw err;
+          }
+        }
+
+        if (response.status === 401) {
+          throw new Error('AUTH_FAILED');
+        }
+
+        if (!response.ok) {
+          throw new Error(`API_ERROR: ${response.status}`);
+        }
+
+        const repos = await response.json();
+        allRepos.push(...repos);
+
+        if (repos.length < CONFIG.perPage) break;
+        page++;
+      }
+
+      return allRepos;
+    }
+
+    // --- Error Display ---
+    function showError(message, showRetry, showTokenInput) {
+      const statusEl = document.getElementById('status');
+      const errorEl = document.getElementById('error');
+      statusEl.style.display = 'none';
+      errorEl.style.display = '';
+
+      errorEl.innerHTML = '';
+      const container = document.createElement('div');
+
+      const msgP = document.createElement('p');
+      msgP.textContent = message;
+      container.appendChild(msgP);
+
+      if (showRetry) {
+        const retryBtn = document.createElement('button');
+        retryBtn.textContent = 'Retry';
+        retryBtn.addEventListener('click', () => initDashboard());
+        container.appendChild(retryBtn);
+      }
+
+      if (showTokenInput) {
+        const tokenBtn = document.createElement('button');
+        tokenBtn.textContent = 'Add GitHub Token';
+        tokenBtn.addEventListener('click', () => showTokenPrompt());
+        container.appendChild(tokenBtn);
+      }
+
+      errorEl.appendChild(container);
+    }
+
+    // --- Token Prompt ---
+    function showTokenPrompt() {
+      const errorEl = document.getElementById('error');
+      const promptEl = document.getElementById('token-prompt');
+      errorEl.style.display = 'none';
+      promptEl.style.display = '';
+
+      promptEl.innerHTML = '';
+
+      const desc = document.createElement('p');
+      desc.textContent = 'Enter a GitHub Personal Access Token for higher rate limits (5,000 requests/hour).';
+      promptEl.appendChild(desc);
+
+      const hint = document.createElement('p');
+      hint.textContent = 'Create one at github.com/settings/tokens with public_repo scope.';
+      promptEl.appendChild(hint);
+
+      const input = document.createElement('input');
+      input.type = 'password';
+      input.id = 'token-input';
+      input.placeholder = 'ghp_xxxxxxxxxxxx';
+      promptEl.appendChild(input);
+
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = 'Save Token';
+      saveBtn.addEventListener('click', () => {
+        const value = input.value.trim();
+        if (value) {
+          saveToken(value);
+          promptEl.style.display = 'none';
+          initDashboard();
+        }
+      });
+      promptEl.appendChild(saveBtn);
+
+      const skipSpan = document.createElement('span');
+      skipSpan.className = 'skip-link';
+      skipSpan.textContent = 'Skip (continue without token)';
+      skipSpan.style.display = 'block';
+      skipSpan.style.marginTop = '12px';
+      skipSpan.addEventListener('click', () => {
+        promptEl.style.display = 'none';
+        initDashboard();
+      });
+      promptEl.appendChild(skipSpan);
+    }
+
+    // --- Render Stub (Plan 02 will implement) ---
+    function renderGrid(repos) {
+      console.log('Fetched', repos.length, 'repos', repos);
+    }
+
+    // --- Main Initialization ---
+    async function initDashboard() {
+      const statusEl = document.getElementById('status');
+      const errorEl = document.getElementById('error');
+      const promptEl = document.getElementById('token-prompt');
+      const gridEl = document.getElementById('project-grid');
+      const countEl = document.getElementById('repo-count');
+
+      statusEl.style.display = '';
+      statusEl.textContent = 'Loading repositories...';
+      errorEl.style.display = 'none';
+      promptEl.style.display = 'none';
+      gridEl.innerHTML = '';
+
+      try {
+        const repos = await fetchAllRepos();
+        window.allRepos = repos;
+        statusEl.style.display = 'none';
+
+        if (repos.length === 0) {
+          const emptyDiv = document.createElement('div');
+          emptyDiv.style.textAlign = 'center';
+          emptyDiv.style.padding = '40px';
+          emptyDiv.style.gridColumn = '1 / -1';
+
+          const emptyMsg = document.createElement('p');
+          emptyMsg.textContent = 'No repositories found.';
+          emptyDiv.appendChild(emptyMsg);
+
+          const createLink = document.createElement('a');
+          createLink.href = 'https://github.com/new';
+          createLink.target = '_blank';
+          createLink.rel = 'noopener noreferrer';
+          createLink.textContent = 'Create your first repository on GitHub';
+          emptyDiv.appendChild(createLink);
+
+          gridEl.appendChild(emptyDiv);
+          countEl.textContent = 'Showing 0 repositories';
+          return;
+        }
+
+        countEl.textContent = `Showing ${repos.length} repositories`;
+        renderGrid(repos);
+      } catch (err) {
+        if (err.message === 'RATE_LIMITED') {
+          showError('GitHub API rate limit reached. Unauthenticated requests are limited to 60 per hour.', true, true);
+        } else if (err.message === 'AUTH_FAILED') {
+          clearToken();
+          showError('GitHub token is invalid or expired. Please re-enter your token.', true, true);
+        } else if (err.message === 'API_ERROR: 404') {
+          showError('GitHub user not found. Check the username in the dashboard configuration.', false, false);
+        } else {
+          showError('Failed to fetch repositories. Check your internet connection and try again.', true, false);
+        }
+      }
+    }
+
+    // --- Auto-start ---
+    initDashboard();
   </script>
 </body>
 </html>
