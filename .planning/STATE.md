@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed quick-260414-h3x
-last_updated: "2026-04-14T10:24:59.052Z"
+stopped_at: Completed quick-260414-hk7
+last_updated: "2026-04-14T10:40:59.052Z"
 last_activity: 2026-04-14
 progress:
   total_phases: 3
@@ -88,9 +88,10 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-04-14 | 260414-h3x | Create private GitHub repo 'tools' | Organized scattered local tools (2 Streamlit dashboards, 8 HTML presentations) into structured private GitHub repository |
 | 2026-04-14 | 260414-grn | Private repo visibility fix | Switched to authenticated `/user/repos` endpoint when token present |
 | 2026-04-14 | 260414-gzw | Card link homepage preference | Cards open `repo.homepage` (deployed tool) instead of GitHub repo when available |
+| 2026-04-14 | 260414-hk7 | GitHub Pages URL auto-construction | Cards auto-construct GitHub Pages URLs (`username.github.io/repo-name`) when homepage not set |
 
 ## Session Continuity
 
-Last session: 2026-04-14T10:24:59.033Z
-Stopped at: Completed quick-260414-h3x
+Last session: 2026-04-14T10:40:59.033Z
+Stopped at: Completed quick-260414-hk7
 Resume file: None
