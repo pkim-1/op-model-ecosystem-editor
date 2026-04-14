@@ -260,6 +260,63 @@
       margin-top: 12px;
     }
 
+    #filter-section {
+      margin-top: 12px;
+    }
+
+    #filter-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    #filter-count-badge {
+      background: var(--pacific-blue);
+      color: var(--white);
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .filter-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .filter-chip {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border: 1px solid var(--medium-gray);
+      background: var(--white);
+      color: var(--text-primary);
+      transition: background-color 0.15s ease;
+      user-select: none;
+    }
+
+    .filter-chip:hover {
+      background: var(--light-gray);
+    }
+
+    .filter-chip.active {
+      background: var(--pacific-blue);
+      color: var(--white);
+      border-color: var(--pacific-blue);
+    }
+
+    .filter-chip.active:hover {
+      opacity: 0.9;
+    }
+
     @media (max-width: 600px) {
       #search-sort-row {
         flex-direction: column;
@@ -287,6 +344,14 @@
         <option value="updated-asc">Updated (oldest)</option>
         <option value="name-asc">Name (A-Z)</option>
       </select>
+    </div>
+    <div id="filter-section">
+      <div id="filter-header">
+        <span>Filters</span>
+        <span id="filter-count-badge" style="display:none;"></span>
+      </div>
+      <div id="topic-filters" class="filter-chip-row"></div>
+      <div id="language-filters" class="filter-chip-row"></div>
     </div>
   </div>
   <div id="no-results" style="display:none;">
@@ -512,6 +577,86 @@
       grid.appendChild(fragment);
     }
 
+    // --- Filter Chips ---
+    function renderFilterChips() {
+      const topicContainer = document.getElementById('topic-filters');
+      const langContainer = document.getElementById('language-filters');
+      const repos = window.allRepos || [];
+
+      const topics = [...new Set(repos.flatMap(r => r.topics || []))].sort();
+      const languages = [...new Set(repos.map(r => r.language).filter(Boolean))].sort();
+
+      const topicFrag = document.createDocumentFragment();
+      topics.forEach(topic => {
+        const chip = document.createElement('span');
+        chip.className = 'filter-chip';
+        chip.textContent = topic;
+        chip.setAttribute('data-topic', topic);
+        chip.addEventListener('click', () => {
+          const idx = window.activeTopics.indexOf(topic);
+          if (idx === -1) {
+            window.activeTopics.push(topic);
+          } else {
+            window.activeTopics.splice(idx, 1);
+          }
+          chip.classList.toggle('active');
+          updateFilterBadge();
+          applyFilters();
+        });
+        topicFrag.appendChild(chip);
+      });
+      topicContainer.innerHTML = '';
+      topicContainer.appendChild(topicFrag);
+      topicContainer.style.display = topics.length === 0 ? 'none' : '';
+
+      const langFrag = document.createDocumentFragment();
+      languages.forEach(lang => {
+        const chip = document.createElement('span');
+        chip.className = 'filter-chip';
+        chip.textContent = lang;
+        chip.setAttribute('data-language', lang);
+        chip.addEventListener('click', () => {
+          const idx = window.activeLanguages.indexOf(lang);
+          if (idx === -1) {
+            window.activeLanguages.push(lang);
+          } else {
+            window.activeLanguages.splice(idx, 1);
+          }
+          chip.classList.toggle('active');
+          updateFilterBadge();
+          applyFilters();
+        });
+        langFrag.appendChild(chip);
+      });
+      langContainer.innerHTML = '';
+      langContainer.appendChild(langFrag);
+      langContainer.style.display = languages.length === 0 ? 'none' : '';
+    }
+
+    function updateFilterBadge() {
+      const badge = document.getElementById('filter-count-badge');
+      const count = window.activeTopics.length + window.activeLanguages.length;
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function highlightActiveChips() {
+      document.querySelectorAll('.filter-chip').forEach(chip => {
+        const topic = chip.getAttribute('data-topic');
+        const lang = chip.getAttribute('data-language');
+        if (topic) {
+          chip.classList.toggle('active', window.activeTopics.includes(topic));
+        } else if (lang) {
+          chip.classList.toggle('active', window.activeLanguages.includes(lang));
+        }
+      });
+      updateFilterBadge();
+    }
+
     // --- Filtering Engine ---
     function applyFilters() {
       const searchInput = document.getElementById('search-input');
@@ -612,6 +757,7 @@
         if (sortSelect) sortSelect.value = 'updated-desc';
         if (clearBtn) clearBtn.style.display = 'none';
         applyFilters();
+        highlightActiveChips();
         return;
       }
 
@@ -658,6 +804,7 @@
       }
 
       applyFilters();
+      highlightActiveChips();
     }
 
     window.addEventListener('hashchange', readHash);
@@ -688,6 +835,8 @@
       window.activeLanguages = [];
       sortSelect.value = 'updated-desc';
       document.getElementById('search-clear').style.display = 'none';
+      document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
+      updateFilterBadge();
       applyFilters();
     });
 
@@ -735,6 +884,7 @@
         countEl.textContent = `Showing ${repos.length} repositories`;
         renderGrid(repos);
         document.getElementById('controls').style.display = '';
+        renderFilterChips();
         readHash();
       } catch (err) {
         if (err.message === 'RATE_LIMITED') {
