@@ -188,6 +188,87 @@
       text-decoration: underline;
       font-size: 0.9rem;
     }
+
+    #controls {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: var(--grid-gap);
+    }
+
+    #search-sort-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    #search-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    #search-input {
+      width: 100%;
+      padding: 10px 36px 10px 12px;
+      border: 1px solid var(--medium-gray);
+      border-radius: var(--card-radius);
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+
+    #search-input:focus {
+      border-color: var(--eg-blue);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(0,0,153,0.15);
+    }
+
+    #search-clear {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      padding: 4px;
+    }
+
+    #sort-select {
+      padding: 10px 12px;
+      border: 1px solid var(--medium-gray);
+      border-radius: var(--card-radius);
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: var(--white);
+      min-width: 180px;
+    }
+
+    #no-results {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    #no-results button {
+      background: var(--eg-blue);
+      color: var(--white);
+      border: none;
+      padding: 8px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 600px) {
+      #search-sort-row {
+        flex-direction: column;
+      }
+
+      #sort-select {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -195,6 +276,23 @@
     <h1>Project Dashboard</h1>
     <span id="repo-count"></span>
   </header>
+  <div id="controls" style="display:none;">
+    <div id="search-sort-row">
+      <div id="search-wrapper">
+        <input type="text" id="search-input" placeholder="Search projects by name, description, or topic..." />
+        <button id="search-clear" style="display:none;" aria-label="Clear search">&times;</button>
+      </div>
+      <select id="sort-select">
+        <option value="updated-desc" selected>Updated (newest)</option>
+        <option value="updated-asc">Updated (oldest)</option>
+        <option value="name-asc">Name (A-Z)</option>
+      </select>
+    </div>
+  </div>
+  <div id="no-results" style="display:none;">
+    <p>No projects match your filters</p>
+    <button id="clear-filters-btn">Clear all filters</button>
+  </div>
   <div id="status">Loading repositories...</div>
   <div id="error" style="display:none;"></div>
   <div id="token-prompt" style="display:none;"></div>
