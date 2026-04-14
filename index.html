@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Dashboard</title>
+  <style>
+    :root {
+      --eg-blue: #000099;
+      --pacific-blue: #4248ED;
+      --white: #FFFFFF;
+      --light-gray: #F5F5F5;
+      --medium-gray: #E0E0E0;
+      --dark-gray: #333333;
+      --text-primary: #1A1A1A;
+      --text-secondary: #666666;
+      --card-radius: 8px;
+      --grid-gap: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--light-gray);
+      color: var(--text-primary);
+      font-family: 'Centra No2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    header {
+      background: var(--eg-blue);
+      color: var(--white);
+      padding: 24px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 8px 0;
+      font-size: 1.8rem;
+    }
+
+    header #repo-count {
+      font-size: 0.95rem;
+      opacity: 0.85;
+    }
+
+    #project-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: var(--grid-gap);
+      padding: var(--grid-gap);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--card-radius);
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transform: translateY(-2px);
+    }
+
+    .card h3 {
+      margin: 0 0 8px 0;
+      color: var(--eg-blue);
+      font-size: 1.1rem;
+    }
+
+    .card p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin: 0 0 12px 0;
+      line-height: 1.4;
+    }
+
+    .topic-chip {
+      display: inline-block;
+      background: var(--light-gray);
+      color: var(--text-secondary);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      margin: 2px;
+    }
+
+    .language-badge {
+      display: inline-block;
+      background: var(--pacific-blue);
+      color: var(--white);
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    #status {
+      text-align: center;
+      padding: 40px;
+      font-size: 1rem;
+      color: var(--text-secondary);
+    }
+
+    #error {
+      text-align: center;
+      padding: 20px;
+      background: #FFF3F3;
+      border: 1px solid #FFD0D0;
+      border-radius: var(--card-radius);
+      max-width: 600px;
+      margin: 20px auto;
+      color: var(--dark-gray);
+    }
+
+    #error button, #token-prompt button {
+      background: var(--eg-blue);
+      color: var(--white);
+      border: none;
+      padding: 8px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 4px;
+    }
+
+    #token-prompt {
+      text-align: center;
+      padding: 20px;
+      background: var(--white);
+      border: 1px solid var(--medium-gray);
+      border-radius: var(--card-radius);
+      max-width: 500px;
+      margin: 20px auto;
+    }
+
+    #token-prompt input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--medium-gray);
+      border-radius: 4px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+
+    #token-prompt .skip-link {
+      color: var(--pacific-blue);
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Project Dashboard</h1>
+    <span id="repo-count"></span>
+  </header>
+  <div id="status">Loading repositories...</div>
+  <div id="error" style="display:none;"></div>
+  <div id="token-prompt" style="display:none;"></div>
+  <div id="project-grid"></div>
+
+  <script>
+    // --- Config ---
+    const CONFIG = {
+      username: 'paulkim-infmtx',
+      perPage: 100,
+      apiBase: 'https://api.github.com',
+    };
+  </script>
+</body>
+</html>
