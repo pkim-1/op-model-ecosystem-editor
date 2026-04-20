@@ -836,6 +836,14 @@ function renderMeetingForm(el, meeting) {
 
   // Transcript mode
   html += '<div id="transcriptMode" style="display:none">';
+  html += '<div class="upload-zone" onclick="document.getElementById(\'transcriptFileInput\').click()" style="border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color 0.15s,background 0.15s"';
+  html += ' onmouseenter="this.style.borderColor=\'var(--blue)\';this.style.background=\'var(--hover)\'"';
+  html += ' onmouseleave="this.style.borderColor=\'var(--border)\';this.style.background=\'transparent\'">';
+  html += '<div style="font-size:32px;margin-bottom:8px;color:var(--text-tertiary)">&#128196;</div>';
+  html += '<button type="button" class="btn btn-secondary" onclick="event.stopPropagation();document.getElementById(\'transcriptFileInput\').click()">Upload Transcript File</button>';
+  html += '<p style="font-size:13px;color:var(--text-tertiary);margin-top:8px">or paste below</p>';
+  html += '<input type="file" id="transcriptFileInput" class="file-input" accept=".txt,.vtt" onchange="handleTranscriptFile(event)">';
+  html += '</div>';
   html += '<div class="form-group"><label>Paste Zoom Transcript</label>';
   html += '<textarea id="transcriptText" rows="10" placeholder="Paste your Zoom meeting transcript here..."></textarea></div>';
   html += '<button class="btn btn-primary" onclick="parseTranscript()">Parse Transcript</button>';
@@ -907,6 +915,36 @@ function renderPendingItems() {
 function removePendingItem(idx) {
   _pendingItems.splice(idx, 1);
   renderPendingItems();
+}
+
+// --- Transcript File Upload ---
+function handleTranscriptFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Auto-fill title from filename
+    const titleInput = document.getElementById('meetingTitle');
+    if (!titleInput.value.trim()) {
+      let name = file.name.replace(/\.[^.]+$/, ''); // strip extension
+      name = name.replace(/'s transcript$/i, '');     // strip "'s transcript"
+      name = name.replace(/_/g, ' ');                 // underscores to spaces
+      name = name.replace(/\b1 1\b/g, '1:1');        // "1 1" to "1:1"
+      titleInput.value = name.trim();
+    }
+    // Auto-set date from filename if date field is today's default
+    const dateInput = document.getElementById('meetingDate');
+    const dateMatch = file.name.match(/(\d{4}[-_]\d{2}[-_]\d{2})/);
+    if (dateMatch) {
+      dateInput.value = dateMatch[1].replace(/_/g, '-');
+    }
+    // Populate textarea and parse
+    document.getElementById('transcriptText').value = e.target.result;
+    parseTranscript();
+    showToast('Transcript loaded from file');
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // reset for re-upload
 }
 
 // --- Transcript Parsing ---
