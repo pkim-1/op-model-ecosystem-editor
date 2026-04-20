@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Tracker</title>
+<style>
+:root {
+  --eg-blue: #000099;
+  --navy: #1e3a6e;
+  --blue: #1976d2;
+  --white: #ffffff;
+  --green: #16a34a;
+  --amber: #d97706;
+  --purple: #7c3aed;
+  --bg: #f7f9fc;
+  --hover: #eef3ff;
+  --border: #e2e6ed;
+  --text-primary: #1a1f2e;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --radius: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  background: var(--eg-blue);
+  color: var(--white);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--white);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* Layout */
+.app {
+  display: flex;
+  margin-top: 56px;
+  min-height: calc(100vh - 56px);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  padding: 16px 0;
+  position: fixed;
+  top: 56px;
+  bottom: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 90;
+}
+
+.sidebar-nav { flex: 1; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item:hover { background: var(--hover); color: var(--text-primary); }
+.nav-item.active { background: var(--hover); color: var(--blue); font-weight: 600; }
+.nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
+
+.sidebar-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-footer button {
+  padding: 8px 12px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sidebar-footer button:hover { background: var(--hover); }
+
+/* Main content */
+.main {
+  flex: 1;
+  margin-left: 220px;
+  padding: 24px;
+  max-width: 960px;
+}
+
+/* Cards */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.15s;
+}
+
+.card:hover { box-shadow: var(--shadow-md); }
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-date {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.card-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-action { background: #dcfce7; color: var(--green); }
+.badge-decision { background: #ede9fe; color: var(--purple); }
+.badge-discussion { background: #fef3c7; color: var(--amber); }
+.badge-open { background: #dbeafe; color: var(--blue); }
+.badge-done { background: #dcfce7; color: var(--green); }
+.badge-pending { background: #fef3c7; color: var(--amber); }
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn-primary { background: var(--blue); color: var(--white); }
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary { background: var(--white); color: var(--text-primary); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--hover); }
+.btn-danger { background: #fee2e2; color: #dc2626; }
+.btn-danger:hover { background: #fecaca; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* Forms */
+.form-group { margin-bottom: 16px; }
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--white);
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+}
+
+.form-group textarea { resize: vertical; min-height: 100px; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Toggle */
+.toggle-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  background: var(--white);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toggle-btn.active { background: var(--blue); color: var(--white); }
+
+/* Timeline */
+.timeline { position: relative; padding-left: 32px; }
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline-node {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -32px;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid var(--white);
+  box-shadow: var(--shadow);
+}
+
+.dot-action { background: var(--green); }
+.dot-decision { background: var(--purple); }
+.dot-discussion { background: var(--amber); }
+.dot-meeting { background: var(--blue); }
+
+.timeline-date {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.timeline-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.timeline-items { margin-top: 8px; }
+
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Person / Project list */
+.entity-list { display: flex; flex-direction: column; gap: 8px; }
+
+.entity-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.entity-card:hover { background: var(--hover); }
+
+.entity-name { font-weight: 600; font-size: 14px; }
+.entity-count { font-size: 13px; color: var(--text-tertiary); }
+
+/* Search */
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.search-bar select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  background: var(--white);
+}
+
+/* Items list */
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.item-row:last-child { border-bottom: none; }
+
+.item-text { flex: 1; }
+
+.item-assignee {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.status-icon { font-size: 16px; cursor: pointer; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-tertiary);
+}
+
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* Notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--navy);
+  color: var(--white);
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 200;
+}
+
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* Item form inline */
+.add-item-form {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.add-item-form .form-row { grid-template-columns: 1fr 1fr 1fr; }
+
+/* Review items before save */
+.review-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+
+.review-item select {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.review-item .review-text {
+  flex: 1;
+  font-size: 13px;
+}
+
+.review-item .review-speaker {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+/* Detail view back link */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--blue);
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+.back-link:hover { text-decoration: underline; }
+
+/* Actions bar */
+.actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.actions-bar h2 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Participants display */
+.participants {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.participant-tag {
+  padding: 2px 8px;
+  background: var(--hover);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hamburger { display: block; }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s;
+  }
+
+  .sidebar.open { transform: translateX(0); }
+
+  .main { margin-left: 0; }
+
+  .form-row { grid-template-columns: 1fr; }
+  .add-item-form .form-row { grid-template-columns: 1fr; }
+}
+
+/* File input hidden */
+.file-input { display: none; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <button class="hamburger" onclick="toggleSidebar()">&#9776;</button>
+  <h1>Meeting Tracker</h1>
+  <div></div>
+</header>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="meetings" onclick="navigate('meetings')">
+        <span class="icon">&#128196;</span> Meetings
+      </button>
+      <button class="nav-item" data-view="timeline" onclick="navigate('timeline')">
+        <span class="icon">&#128197;</span> Timeline
+      </button>
+      <button class="nav-item" data-view="people" onclick="navigate('people')">
+        <span class="icon">&#128101;</span> People
+      </button>
+      <button class="nav-item" data-view="projects" onclick="navigate('projects')">
+        <span class="icon">&#128193;</span> Projects
+      </button>
+      <button class="nav-item" data-view="search" onclick="navigate('search')">
+        <span class="icon">&#128269;</span> Search
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button onclick="exportAllOpenActions()">Export Open Actions</button>
+      <button onclick="downloadJSON()">Export JSON Backup</button>
+      <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+      <input type="file" id="importFile" class="file-input" accept=".json" onchange="importJSON(event)">
+    </div>
+  </aside>
+
+  <main class="main" id="mainContent"></main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// --- Data Layer ---
+const STORAGE_KEY = 'meeting_tracker_data';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* ignore corrupt data */ }
+  return { meetings: [] };
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let appData = loadData();
+let currentView = 'meetings';
+let detailContext = null; // { type: 'person'|'project'|'meeting', id: string }
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+// --- Toast ---
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// --- Navigation ---
+function navigate(view, detail) {
+  currentView = view;
+  detailContext = detail || null;
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.view === view);
+  });
+  render();
+  // Close sidebar on mobile
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// --- Render Router ---
+function render() {
+  const main = document.getElementById('mainContent');
+  switch (currentView) {
+    case 'meetings': renderMeetings(main); break;
+    case 'new-meeting': renderNewMeeting(main); break;
+    case 'edit-meeting': renderEditMeeting(main); break;
+    case 'view-meeting': renderViewMeeting(main); break;
+    case 'timeline': renderTimeline(main); break;
+    case 'people': renderPeople(main); break;
+    case 'person-detail': renderPersonDetail(main); break;
+    case 'projects': renderProjects(main); break;
+    case 'project-detail': renderProjectDetail(main); break;
+    case 'search': renderSearch(main); break;
+    default: renderMeetings(main);
+  }
+}
+
+// --- Helpers ---
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function countItems(meeting, type) {
+  return meeting.items.filter(i => i.type === type).length;
+}
+
+function allParticipants() {
+  const set = new Set();
+  appData.meetings.forEach(m => m.participants.forEach(p => set.add(p)));
+  return [...set].sort();
+}
+
+function allProjects() {
+  const set = new Set();
+  appData.meetings.forEach(m => m.items.forEach(i => { if (i.project) set.add(i.project); }));
+  return [...set].sort();
+}
+
+function statusIcon(status) {
+  if (status === 'done') return '<span style="color:var(--green)">&#10003;</span>';
+  if (status === 'pending') return '<span style="color:var(--amber)">&#9711;</span>';
+  return '<span style="color:var(--blue)">&#9675;</span>';
+}
+
+function typeBadge(type) {
+  const cls = type === 'action' ? 'badge-action' : type === 'decision' ? 'badge-decision' : 'badge-discussion';
+  return '<span class="badge ' + cls + '">' + escapeHtml(type) + '</span>';
+}
+
+function statusBadge(status) {
+  const cls = status === 'done' ? 'badge-done' : status === 'pending' ? 'badge-pending' : 'badge-open';
+  return '<span class="badge ' + cls + '">' + escapeHtml(status) + '</span>';
+}
+
+// --- Meetings List View ---
+function renderMeetings(el) {
+  const sorted = [...appData.meetings].sort((a, b) => new Date(b.date) - new Date(a.date));
+  let html = '<div class="actions-bar"><h2>Meetings</h2>';
+  html += '<button class="btn btn-primary" onclick="navigate(\'new-meeting\')">+ New Meeting</button></div>';
+
+  if (sorted.length === 0) {
+    html += '<div class="empty-state"><div class="icon">&#128196;</div><p>No meetings yet. Click "New Meeting" to get started.</p></div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  sorted.forEach(m => {
+    const actions = countItems(m, 'action');
+    const decisions = countItems(m, 'decision');
+    const discussions = countItems(m, 'discussion');
+    html += '<div class="card" style="cursor:pointer" onclick="navigate(\'view-meeting\', {type:\'meeting\',id:\'' + escapeHtml(m.id) + '\'})">';
+    html += '<div class="card-header"><span class="card-title">' + escapeHtml(m.title) + '</span>';
+    html += '<span class="card-date">' + escapeHtml(formatDate(m.date)) + '</span></div>';
+    html += '<div class="card-meta">';
+    if (actions) html += '<span class="badge badge-action">' + actions + ' action' + (actions > 1 ? 's' : '') + '</span>';
+    if (decisions) html += '<span class="badge badge-decision">' + decisions + ' decision' + (decisions > 1 ? 's' : '') + '</span>';
+    if (discussions) html += '<span class="badge badge-discussion">' + discussions + ' discussion' + (discussions > 1 ? 's' : '') + '</span>';
+    html += '</div>';
+    if (m.participants.length > 0) {
+      html += '<div class="participants">';
+      m.participants.forEach(p => { html += '<span class="participant-tag">' + escapeHtml(p) + '</span>'; });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// --- View Meeting ---
+function renderViewMeeting(el) {
+  const m = appData.meetings.find(x => x.id === detailContext.id);
+  if (!m) { navigate('meetings'); return; }
+
+  let html = '<button class="back-link" onclick="navigate(\'meetings\')">&larr; Back to Meetings</button>';
+  html += '<div class="card"><div class="card-header"><span class="card-title">' + escapeHtml(m.title) + '</span>';
+  html += '<span class="card-date">' + escapeHtml(formatDate(m.date)) + '</span></div>';
+
+  if (m.participants.length > 0) {
+    html += '<div class="participants" style="margin-bottom:12px">';
+    m.participants.forEach(p => { html += '<span class="participant-tag">' + escapeHtml(p) + '</span>'; });
+    html += '</div>';
+  }
+
+  html += '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">';
+  html += '<button class="btn btn-secondary btn-sm" onclick="navigate(\'edit-meeting\', {type:\'meeting\',id:\'' + escapeHtml(m.id) + '\'})">Edit</button>';
+  html += '<button class="btn btn-secondary btn-sm" onclick="exportMeeting(\'' + escapeHtml(m.id) + '\')">Export</button>';
+  html += '<button class="btn btn-danger btn-sm" onclick="deleteMeeting(\'' + escapeHtml(m.id) + '\')">Delete</button>';
+  html += '</div>';
+
+  ['action', 'decision', 'discussion'].forEach(type => {
+    const items = m.items.filter(i => i.type === type);
+    if (items.length === 0) return;
+    const label = type === 'action' ? 'Action Items' : type === 'decision' ? 'Decisions' : 'Discussion';
+    html += '<h3 style="font-size:14px;margin:16px 0 8px;color:var(--text-secondary)">' + label + '</h3>';
+    items.forEach(item => {
+      html += '<div class="item-row">';
+      html += '<span class="status-icon" onclick="toggleStatus(\'' + escapeHtml(m.id) + '\',\'' + escapeHtml(item.id) + '\')">' + statusIcon(item.status) + '</span>';
+      html += '<span class="item-text">' + escapeHtml(item.text) + '</span>';
+      html += typeBadge(item.type);
+      html += statusBadge(item.status);
+      if (item.assignee) html += '<span class="item-assignee">' + escapeHtml(item.assignee) + '</span>';
+      if (item.project) html += '<span class="badge" style="background:#f0f0f0;color:var(--text-secondary);font-size:11px">' + escapeHtml(item.project) + '</span>';
+      html += '</div>';
+    });
+  });
+
+  if (m.rawNotes) {
+    html += '<h3 style="font-size:14px;margin:16px 0 8px;color:var(--text-secondary)">Raw Notes</h3>';
+    html += '<pre style="white-space:pre-wrap;font-size:13px;color:var(--text-secondary);max-height:300px;overflow:auto;background:var(--bg);padding:12px;border-radius:var(--radius)">' + escapeHtml(m.rawNotes) + '</pre>';
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// --- New Meeting Form ---
+function renderNewMeeting(el) {
+  renderMeetingForm(el, null);
+}
+
+function renderEditMeeting(el) {
+  const m = appData.meetings.find(x => x.id === detailContext.id);
+  if (!m) { navigate('meetings'); return; }
+  renderMeetingForm(el, m);
+}
+
+function renderMeetingForm(el, meeting) {
+  const isEdit = !!meeting;
+  const title = isEdit ? meeting.title : '';
+  const date = isEdit ? meeting.date : new Date().toISOString().split('T')[0];
+  const participants = isEdit ? meeting.participants.join(', ') : '';
+
+  let html = '<button class="back-link" onclick="navigate(\'meetings\')">&larr; Back</button>';
+  html += '<div class="card"><h2 style="margin-bottom:16px">' + (isEdit ? 'Edit Meeting' : 'New Meeting') + '</h2>';
+
+  html += '<div class="form-group"><label>Title</label>';
+  html += '<input type="text" id="meetingTitle" value="' + escapeHtml(title) + '" placeholder="Meeting title"></div>';
+
+  html += '<div class="form-row"><div class="form-group"><label>Date</label>';
+  html += '<input type="date" id="meetingDate" value="' + escapeHtml(date) + '"></div>';
+  html += '<div class="form-group"><label>Participants (comma-separated)</label>';
+  html += '<input type="text" id="meetingParticipants" value="' + escapeHtml(participants) + '" placeholder="Alice, Bob, Charlie"></div></div>';
+
+  html += '<div class="toggle-group">';
+  html += '<button class="toggle-btn active" id="toggleManual" onclick="switchInputMode(\'manual\')">Manual Entry</button>';
+  html += '<button class="toggle-btn" id="toggleTranscript" onclick="switchInputMode(\'transcript\')">Paste Transcript</button>';
+  html += '</div>';
+
+  // Manual mode
+  html += '<div id="manualMode">';
+  html += '<div class="form-group"><label>Notes</label>';
+  html += '<textarea id="meetingNotes" rows="4" placeholder="General meeting notes...">' + escapeHtml(isEdit ? (meeting.rawNotes || '') : '') + '</textarea></div>';
+
+  // Existing items (for edit)
+  html += '<div id="existingItems"></div>';
+
+  html += '<h3 style="font-size:14px;margin-bottom:8px">Add Item</h3>';
+  html += '<div class="add-item-form">';
+  html += '<div class="form-row" style="grid-template-columns:auto 1fr 1fr 1fr auto">';
+  html += '<div class="form-group"><label>Type</label><select id="itemType">';
+  html += '<option value="action">Action</option><option value="decision">Decision</option><option value="discussion">Discussion</option></select></div>';
+  html += '<div class="form-group"><label>Description</label><input type="text" id="itemText" placeholder="Item description"></div>';
+  html += '<div class="form-group"><label>Assignee</label><input type="text" id="itemAssignee" placeholder="Person"></div>';
+  html += '<div class="form-group"><label>Project</label><input type="text" id="itemProject" placeholder="Project tag"></div>';
+  html += '<div class="form-group"><label>Due Date</label><input type="date" id="itemDue"></div>';
+  html += '</div>';
+  html += '<button class="btn btn-secondary btn-sm" onclick="addItemToForm()">Add Item</button>';
+  html += '</div>';
+
+  html += '<div id="pendingItems" style="margin-top:12px"></div>';
+  html += '</div>';
+
+  // Transcript mode
+  html += '<div id="transcriptMode" style="display:none">';
+  html += '<div class="form-group"><label>Paste Zoom Transcript</label>';
+  html += '<textarea id="transcriptText" rows="10" placeholder="Paste your Zoom meeting transcript here..."></textarea></div>';
+  html += '<button class="btn btn-primary" onclick="parseTranscript()">Parse Transcript</button>';
+  html += '<div id="parsedReview" style="margin-top:16px"></div>';
+  html += '</div>';
+
+  html += '<div style="margin-top:20px;display:flex;gap:8px">';
+  html += '<button class="btn btn-primary" onclick="saveMeeting(\'' + (isEdit ? escapeHtml(meeting.id) : '') + '\')">' + (isEdit ? 'Update' : 'Save') + ' Meeting</button>';
+  html += '<button class="btn btn-secondary" onclick="navigate(\'meetings\')">Cancel</button>';
+  html += '</div></div>';
+
+  el.innerHTML = html;
+
+  // Init pending items
+  window._pendingItems = isEdit ? [...meeting.items] : [];
+  window._parsedItems = [];
+  renderPendingItems();
+}
+
+let _pendingItems = [];
+let _parsedItems = [];
+
+function switchInputMode(mode) {
+  document.getElementById('manualMode').style.display = mode === 'manual' ? '' : 'none';
+  document.getElementById('transcriptMode').style.display = mode === 'transcript' ? '' : 'none';
+  document.getElementById('toggleManual').classList.toggle('active', mode === 'manual');
+  document.getElementById('toggleTranscript').classList.toggle('active', mode === 'transcript');
+}
+
+function addItemToForm() {
+  const text = document.getElementById('itemText').value.trim();
+  if (!text) return;
+  _pendingItems.push({
+    id: generateId(),
+    type: document.getElementById('itemType').value,
+    text: text,
+    assignee: document.getElementById('itemAssignee').value.trim(),
+    project: document.getElementById('itemProject').value.trim(),
+    status: 'open',
+    dueDate: document.getElementById('itemDue').value || null,
+    createdAt: new Date().toISOString()
+  });
+  document.getElementById('itemText').value = '';
+  document.getElementById('itemAssignee').value = '';
+  document.getElementById('itemProject').value = '';
+  document.getElementById('itemDue').value = '';
+  renderPendingItems();
+}
+
+function renderPendingItems() {
+  const container = document.getElementById('pendingItems');
+  if (!container) return;
+  if (_pendingItems.length === 0) { container.innerHTML = ''; return; }
+
+  let html = '<h3 style="font-size:14px;margin-bottom:8px">Items (' + _pendingItems.length + ')</h3>';
+  _pendingItems.forEach((item, idx) => {
+    html += '<div class="item-row">';
+    html += typeBadge(item.type);
+    html += '<span class="item-text">' + escapeHtml(item.text) + '</span>';
+    if (item.assignee) html += '<span class="item-assignee">' + escapeHtml(item.assignee) + '</span>';
+    if (item.project) html += '<span class="badge" style="background:#f0f0f0;color:var(--text-secondary);font-size:11px">' + escapeHtml(item.project) + '</span>';
+    html += statusBadge(item.status);
+    html += '<button class="btn btn-danger btn-sm" onclick="removePendingItem(' + idx + ')">x</button>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function removePendingItem(idx) {
+  _pendingItems.splice(idx, 1);
+  renderPendingItems();
+}
+
+// --- Transcript Parsing ---
+function parseTranscript() {
+  const raw = document.getElementById('transcriptText').value.trim();
+  if (!raw) return;
+
+  // Extract speakers and lines
+  const lines = raw.split('\n');
+  const speakers = new Set();
+  const entries = [];
+  let currentSpeaker = '';
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Zoom format: "HH:MM:SS Speaker Name:" or just "Speaker Name:"
+    const speakerMatch = trimmed.match(/^(?:\d{1,2}:\d{2}(?::\d{2})?\s+)?(.+?):\s*$/);
+    if (speakerMatch) {
+      currentSpeaker = speakerMatch[1].trim();
+      speakers.add(currentSpeaker);
+      continue;
+    }
+
+    // Content line
+    if (trimmed.length > 0) {
+      entries.push({ speaker: currentSpeaker, text: trimmed });
+    }
+  }
+
+  // Fill participants
+  if (speakers.size > 0) {
+    const partInput = document.getElementById('meetingParticipants');
+    const existing = partInput.value.split(',').map(s => s.trim()).filter(Boolean);
+    const merged = new Set([...existing, ...speakers]);
+    partInput.value = [...merged].join(', ');
+  }
+
+  // Categorize with heuristics
+  const actionPatterns = /\b(action item|todo|follow up|will do|needs to|take away|next step|assigned to)\b/i;
+  const decisionPatterns = /\b(decided|agreed|decision|we'll go with|let's go with|consensus|approved|confirmed)\b/i;
+
+  _parsedItems = entries.map(e => {
+    let type = 'discussion';
+    if (actionPatterns.test(e.text)) type = 'action';
+    else if (decisionPatterns.test(e.text)) type = 'decision';
+    return {
+      id: generateId(),
+      type: type,
+      text: e.text,
+      assignee: e.speaker || '',
+      project: '',
+      status: 'open',
+      dueDate: null,
+      createdAt: new Date().toISOString()
+    };
+  });
+
+  renderParsedReview();
+}
+
+function renderParsedReview() {
+  const container = document.getElementById('parsedReview');
+  if (_parsedItems.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-tertiary)">No items parsed from transcript.</p>';
+    return;
+  }
+
+  let html = '<h3 style="font-size:14px;margin-bottom:8px">Parsed Items (' + _parsedItems.length + ') - Review &amp; Recategorize</h3>';
+  _parsedItems.forEach((item, idx) => {
+    html += '<div class="review-item">';
+    html += '<select onchange="updateParsedType(' + idx + ', this.value)">';
+    ['action', 'decision', 'discussion'].forEach(t => {
+      html += '<option value="' + t + '"' + (item.type === t ? ' selected' : '') + '>' + t + '</option>';
+    });
+    html += '</select>';
+    html += '<span class="review-text">' + escapeHtml(item.text) + '</span>';
+    html += '<span class="review-speaker">' + escapeHtml(item.assignee) + '</span>';
+    html += '<button class="btn btn-danger btn-sm" onclick="removeParsedItem(' + idx + ')">x</button>';
+    html += '</div>';
+  });
+
+  html += '<button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="acceptParsedItems()">Accept All Parsed Items</button>';
+  container.innerHTML = html;
+}
+
+function updateParsedType(idx, type) {
+  _parsedItems[idx].type = type;
+}
+
+function removeParsedItem(idx) {
+  _parsedItems.splice(idx, 1);
+  renderParsedReview();
+}
+
+function acceptParsedItems() {
+  _pendingItems = _pendingItems.concat(_parsedItems);
+  _parsedItems = [];
+  switchInputMode('manual');
+  renderPendingItems();
+  document.getElementById('parsedReview').innerHTML = '';
+  showToast('Parsed items added');
+}
+
+// --- Save Meeting ---
+function saveMeeting(existingId) {
+  const title = document.getElementById('meetingTitle').value.trim();
+  const date = document.getElementById('meetingDate').value;
+  const participants = document.getElementById('meetingParticipants').value
+    .split(',').map(s => s.trim()).filter(Boolean);
+
+  if (!title) { showToast('Title is required'); return; }
+
+  const rawNotes = document.getElementById('meetingNotes')
+    ? document.getElementById('meetingNotes').value.trim()
+    : '';
+
+  if (existingId) {
+    const idx = appData.meetings.findIndex(m => m.id === existingId);
+    if (idx >= 0) {
+      appData.meetings[idx].title = title;
+      appData.meetings[idx].date = date;
+      appData.meetings[idx].participants = participants;
+      appData.meetings[idx].items = _pendingItems;
+      appData.meetings[idx].rawNotes = rawNotes;
+    }
+  } else {
+    appData.meetings.push({
+      id: generateId(),
+      title: title,
+      date: date,
+      participants: participants,
+      items: _pendingItems,
+      rawNotes: rawNotes,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  saveData(appData);
+  showToast(existingId ? 'Meeting updated' : 'Meeting saved');
+  navigate('meetings');
+}
+
+function deleteMeeting(id) {
+  if (!confirm('Delete this meeting?')) return;
+  appData.meetings = appData.meetings.filter(m => m.id !== id);
+  saveData(appData);
+  showToast('Meeting deleted');
+  navigate('meetings');
+}
+
+function toggleStatus(meetingId, itemId) {
+  const m = appData.meetings.find(x => x.id === meetingId);
+  if (!m) return;
+  const item = m.items.find(x => x.id === itemId);
+  if (!item) return;
+  const cycle = { open: 'pending', pending: 'done', done: 'open' };
+  item.status = cycle[item.status] || 'open';
+  saveData(appData);
+  render();
+}
+
+// --- Timeline View ---
+function renderTimeline(el) {
+  const sorted = [...appData.meetings].sort((a, b) => new Date(b.date) - new Date(a.date));
+  let html = '<div class="actions-bar"><h2>Timeline</h2></div>';
+
+  if (sorted.length === 0) {
+    html += '<div class="empty-state"><div class="icon">&#128197;</div><p>No meetings to display in timeline.</p></div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  html += '<div class="timeline">';
+  sorted.forEach(m => {
+    html += '<div class="timeline-node">';
+    html += '<div class="timeline-dot dot-meeting"></div>';
+    html += '<div class="timeline-date">' + escapeHtml(formatDate(m.date)) + '</div>';
+    html += '<div class="timeline-title" style="cursor:pointer" onclick="navigate(\'view-meeting\', {type:\'meeting\',id:\'' + escapeHtml(m.id) + '\'})">' + escapeHtml(m.title) + '</div>';
+
+    if (m.items.length > 0) {
+      html += '<div class="timeline-items">';
+      m.items.forEach(item => {
+        const dotCls = item.type === 'action' ? 'dot-action' : item.type === 'decision' ? 'dot-decision' : 'dot-discussion';
+        html += '<div class="timeline-item">';
+        html += '<span class="timeline-dot" style="position:static;width:10px;height:10px;border:none;display:inline-block;flex-shrink:0" class="' + dotCls + '"></span>';
+        html += typeBadge(item.type) + ' ';
+        html += '<span>' + escapeHtml(item.text) + '</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// --- People View ---
+function renderPeople(el) {
+  const people = allParticipants();
+  let html = '<div class="actions-bar"><h2>People</h2></div>';
+
+  if (people.length === 0) {
+    html += '<div class="empty-state"><div class="icon">&#128101;</div><p>No participants yet. Create a meeting to see people here.</p></div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  html += '<div class="entity-list">';
+  people.forEach(person => {
+    const meetingCount = appData.meetings.filter(m => m.participants.includes(person)).length;
+    const actionCount = appData.meetings.reduce((sum, m) =>
+      sum + m.items.filter(i => i.assignee === person && i.type === 'action').length, 0);
+    html += '<div class="entity-card" onclick="navigate(\'person-detail\', {type:\'person\',id:\'' + escapeHtml(person) + '\'})">';
+    html += '<div><span class="entity-name">' + escapeHtml(person) + '</span></div>';
+    html += '<div class="entity-count">' + meetingCount + ' meeting' + (meetingCount !== 1 ? 's' : '') + ', ' + actionCount + ' action' + (actionCount !== 1 ? 's' : '') + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderPersonDetail(el) {
+  const person = detailContext.id;
+  let html = '<button class="back-link" onclick="navigate(\'people\')">&larr; Back to People</button>';
+  html += '<h2 style="margin-bottom:16px">' + escapeHtml(person) + '</h2>';
+
+  const meetings = appData.meetings
+    .filter(m => m.participants.includes(person) || m.items.some(i => i.assignee === person))
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  meetings.forEach(m => {
+    const personItems = m.items.filter(i => i.assignee === person);
+    html += '<div class="card">';
+    html += '<div class="card-header"><span class="card-title">' + escapeHtml(m.title) + '</span>';
+    html += '<span class="card-date">' + escapeHtml(formatDate(m.date)) + '</span></div>';
+    if (personItems.length > 0) {
+      personItems.forEach(item => {
+        html += '<div class="item-row">';
+        html += '<span class="status-icon" onclick="toggleStatus(\'' + escapeHtml(m.id) + '\',\'' + escapeHtml(item.id) + '\')">' + statusIcon(item.status) + '</span>';
+        html += typeBadge(item.type) + ' ';
+        html += '<span class="item-text">' + escapeHtml(item.text) + '</span>';
+        html += statusBadge(item.status);
+        html += '</div>';
+      });
+    } else {
+      html += '<p style="font-size:13px;color:var(--text-tertiary)">Participant (no assigned items)</p>';
+    }
+    html += '</div>';
+  });
+
+  if (meetings.length === 0) {
+    html += '<div class="empty-state"><p>No meetings found for this person.</p></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// --- Projects View ---
+function renderProjects(el) {
+  const projects = allProjects();
+  let html = '<div class="actions-bar"><h2>Projects</h2></div>';
+
+  if (projects.length === 0) {
+    html += '<div class="empty-state"><div class="icon">&#128193;</div><p>No project tags yet. Add project tags to meeting items.</p></div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  html += '<div class="entity-list">';
+  projects.forEach(proj => {
+    const itemCount = appData.meetings.reduce((sum, m) =>
+      sum + m.items.filter(i => i.project === proj).length, 0);
+    html += '<div class="entity-card" onclick="navigate(\'project-detail\', {type:\'project\',id:\'' + escapeHtml(proj) + '\'})">';
+    html += '<div><span class="entity-name">' + escapeHtml(proj) + '</span></div>';
+    html += '<div class="entity-count">' + itemCount + ' item' + (itemCount !== 1 ? 's' : '') + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderProjectDetail(el) {
+  const proj = detailContext.id;
+  let html = '<button class="back-link" onclick="navigate(\'projects\')">&larr; Back to Projects</button>';
+  html += '<h2 style="margin-bottom:16px">' + escapeHtml(proj) + '</h2>';
+
+  appData.meetings.forEach(m => {
+    const projItems = m.items.filter(i => i.project === proj);
+    if (projItems.length === 0) return;
+    html += '<div class="card">';
+    html += '<div class="card-header"><span class="card-title">' + escapeHtml(m.title) + '</span>';
+    html += '<span class="card-date">' + escapeHtml(formatDate(m.date)) + '</span></div>';
+    projItems.forEach(item => {
+      html += '<div class="item-row">';
+      html += '<span class="status-icon" onclick="toggleStatus(\'' + escapeHtml(m.id) + '\',\'' + escapeHtml(item.id) + '\')">' + statusIcon(item.status) + '</span>';
+      html += typeBadge(item.type) + ' ';
+      html += '<span class="item-text">' + escapeHtml(item.text) + '</span>';
+      if (item.assignee) html += '<span class="item-assignee">' + escapeHtml(item.assignee) + '</span>';
+      html += statusBadge(item.status);
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// --- Search View ---
+function renderSearch(el) {
+  let html = '<div class="actions-bar"><h2>Search</h2></div>';
+  html += '<div class="search-bar">';
+  html += '<input type="text" id="searchQuery" placeholder="Search items..." oninput="doSearch()">';
+  html += '<select id="filterType" onchange="doSearch()"><option value="">All Types</option>';
+  html += '<option value="action">Action</option><option value="decision">Decision</option><option value="discussion">Discussion</option></select>';
+  html += '<select id="filterStatus" onchange="doSearch()"><option value="">All Status</option>';
+  html += '<option value="open">Open</option><option value="pending">Pending</option><option value="done">Done</option></select>';
+  html += '<select id="filterPerson" onchange="doSearch()"><option value="">All People</option>';
+  allParticipants().forEach(p => { html += '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>'; });
+  html += '</select>';
+  html += '<select id="filterProject" onchange="doSearch()"><option value="">All Projects</option>';
+  allProjects().forEach(p => { html += '<option value="' + escapeHtml(p) + '">' + escapeHtml(p) + '</option>'; });
+  html += '</select>';
+  html += '</div>';
+  html += '<div id="searchResults"></div>';
+  el.innerHTML = html;
+}
+
+function doSearch() {
+  const query = (document.getElementById('searchQuery').value || '').toLowerCase();
+  const typeFilter = document.getElementById('filterType').value;
+  const statusFilter = document.getElementById('filterStatus').value;
+  const personFilter = document.getElementById('filterPerson').value;
+  const projectFilter = document.getElementById('filterProject').value;
+
+  const results = [];
+  appData.meetings.forEach(m => {
+    m.items.forEach(item => {
+      if (typeFilter && item.type !== typeFilter) return;
+      if (statusFilter && item.status !== statusFilter) return;
+      if (personFilter && item.assignee !== personFilter) return;
+      if (projectFilter && item.project !== projectFilter) return;
+      if (query && !item.text.toLowerCase().includes(query)
+          && !item.assignee.toLowerCase().includes(query)
+          && !(item.project || '').toLowerCase().includes(query)) return;
+      results.push({ meeting: m, item: item });
+    });
+  });
+
+  const container = document.getElementById('searchResults');
+  if (results.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>No matching items found.</p></div>';
+    return;
+  }
+
+  let html = '<p style="font-size:13px;color:var(--text-tertiary);margin-bottom:12px">' + results.length + ' result' + (results.length !== 1 ? 's' : '') + '</p>';
+  results.forEach(r => {
+    html += '<div class="item-row">';
+    html += '<span class="status-icon" onclick="toggleStatus(\'' + escapeHtml(r.meeting.id) + '\',\'' + escapeHtml(r.item.id) + '\')">' + statusIcon(r.item.status) + '</span>';
+    html += typeBadge(r.item.type) + ' ';
+    html += '<span class="item-text">' + escapeHtml(r.item.text) + '</span>';
+    if (r.item.assignee) html += '<span class="item-assignee">' + escapeHtml(r.item.assignee) + '</span>';
+    html += statusBadge(r.item.status);
+    html += '<span style="font-size:11px;color:var(--text-tertiary)">' + escapeHtml(r.meeting.title) + '</span>';
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+// --- Export ---
+function exportMeeting(id) {
+  const m = appData.meetings.find(x => x.id === id);
+  if (!m) return;
+
+  let md = '## Meeting: ' + m.title + ' (' + formatDate(m.date) + ')\n\n';
+  md += '### Participants\n';
+  m.participants.forEach(p => { md += '- ' + p + '\n'; });
+
+  const actions = m.items.filter(i => i.type === 'action');
+  const decisions = m.items.filter(i => i.type === 'decision');
+  const discussions = m.items.filter(i => i.type === 'discussion');
+
+  if (actions.length) {
+    md += '\n### Action Items\n';
+    actions.forEach(i => {
+      md += '- [' + (i.status === 'done' ? 'x' : ' ') + '] ' + i.text;
+      if (i.assignee) md += ' (' + i.assignee + ')';
+      md += '\n';
+    });
+  }
+
+  if (decisions.length) {
+    md += '\n### Decisions\n';
+    decisions.forEach(i => { md += '- ' + i.text + '\n'; });
+  }
+
+  if (discussions.length) {
+    md += '\n### Discussion Notes\n';
+    discussions.forEach(i => { md += '- ' + i.text + '\n'; });
+  }
+
+  navigator.clipboard.writeText(md).then(() => {
+    showToast('Meeting summary copied to clipboard');
+  }).catch(() => {
+    showToast('Failed to copy - check clipboard permissions');
+  });
+}
+
+function exportAllOpenActions() {
+  const openActions = [];
+  appData.meetings.forEach(m => {
+    m.items.filter(i => i.type === 'action' && i.status !== 'done').forEach(i => {
+      openActions.push({ meeting: m.title, date: m.date, item: i });
+    });
+  });
+
+  if (openActions.length === 0) {
+    showToast('No open action items');
+    return;
+  }
+
+  let md = '## Open Action Items\n\n';
+  openActions.sort((a, b) => new Date(b.date) - new Date(a.date));
+  openActions.forEach(a => {
+    md += '- [ ] ' + a.item.text;
+    if (a.item.assignee) md += ' (' + a.item.assignee + ')';
+    md += ' - from "' + a.meeting + '" (' + formatDate(a.date) + ')\n';
+  });
+
+  navigator.clipboard.writeText(md).then(() => {
+    showToast(openActions.length + ' open action(s) copied to clipboard');
+  }).catch(() => {
+    showToast('Failed to copy - check clipboard permissions');
+  });
+}
+
+// --- JSON Import/Export ---
+function downloadJSON() {
+  const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'meeting-tracker-backup-' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON backup downloaded');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (imported.meetings && Array.isArray(imported.meetings)) {
+        appData = imported;
+        saveData(appData);
+        showToast('Data imported successfully');
+        render();
+      } else {
+        showToast('Invalid data format');
+      }
+    } catch (err) {
+      showToast('Failed to parse JSON file');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// --- Init ---
+render();
+</script>
+</body>
+</html>
