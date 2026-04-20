@@ -962,7 +962,33 @@ function parseTranscript() {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Zoom format: "HH:MM:SS Speaker Name:" or just "Speaker Name:"
+    // Skip WebVTT metadata lines
+    if (trimmed === 'WEBVTT') continue;
+    if (/^\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}$/.test(trimmed)) continue;
+
+    // Format 1: Zoom closed-caption .txt — [Speaker Name] HH:MM:SS
+    const ccMatch = trimmed.match(/^\[(.+?)\]\s+\d{1,2}:\d{2}(:\d{2})?$/);
+    if (ccMatch) {
+      currentSpeaker = ccMatch[1].trim();
+      speakers.add(currentSpeaker);
+      continue;
+    }
+
+    // Format 2: WebVTT inline — Speaker Name: content text
+    const vttMatch = trimmed.match(/^([A-Z][A-Za-z\s.'-]+?):\s+(.+)$/);
+    if (vttMatch) {
+      const name = vttMatch[1].trim();
+      // Only treat as speaker if name looks like a person (2+ chars, not a common label)
+      const skipLabels = /^(action item|todo|follow up|next step|note|update|decision|summary|agenda|context)$/i;
+      if (!skipLabels.test(name)) {
+        currentSpeaker = name;
+        speakers.add(currentSpeaker);
+        entries.push({ speaker: currentSpeaker, text: vttMatch[2].trim() });
+        continue;
+      }
+    }
+
+    // Format 3: Original — "HH:MM:SS Speaker Name:" with colon at end
     const speakerMatch = trimmed.match(/^(?:\d{1,2}:\d{2}(?::\d{2})?\s+)?(.+?):\s*$/);
     if (speakerMatch) {
       currentSpeaker = speakerMatch[1].trim();
