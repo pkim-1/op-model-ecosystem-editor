@@ -568,6 +568,9 @@ body {
       <button class="nav-item" data-view="search" onclick="navigate('search')">
         <span class="icon">&#128269;</span> Search
       </button>
+      <button class="nav-item" data-view="settings" onclick="navigate('settings')">
+        <span class="icon">&#9881;</span> Settings
+      </button>
     </nav>
     <div class="sidebar-footer">
       <button onclick="exportAllOpenActions()">Export Open Actions</button>
@@ -646,6 +649,7 @@ function render() {
     case 'projects': renderProjects(main); break;
     case 'project-detail': renderProjectDetail(main); break;
     case 'search': renderSearch(main); break;
+    case 'settings': renderSettings(main); break;
     default: renderMeetings(main);
   }
 }
@@ -1442,6 +1446,83 @@ function importJSON(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+// --- Claude API Key ---
+const CLAUDE_KEY_STORAGE = 'meeting_tracker_claude_key';
+let claudeApiKey = localStorage.getItem(CLAUDE_KEY_STORAGE) || '';
+
+function renderSettings(el) {
+  const savedKey = localStorage.getItem(CLAUDE_KEY_STORAGE) || '';
+  let html = '<div class="actions-bar"><h2>Settings</h2></div>';
+  html += '<div class="card">';
+  html += '<h3 style="font-size:16px;margin-bottom:16px">Claude API Configuration</h3>';
+
+  html += '<div class="form-group"><label>Claude API Key</label>';
+  html += '<div style="display:flex;gap:8px">';
+  html += '<input type="password" id="claudeApiKey" value="' + escapeHtml(savedKey) + '" placeholder="sk-ant-..." style="flex:1">';
+  html += '<button class="btn btn-secondary btn-sm" onclick="toggleKeyVisibility()">Show</button>';
+  html += '</div></div>';
+
+  html += '<div style="display:flex;gap:8px;margin-bottom:16px">';
+  html += '<button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save</button>';
+  html += '<button class="btn btn-secondary btn-sm" id="testKeyBtn" onclick="testApiKey()">Test</button>';
+  html += '</div>';
+
+  html += '<p style="font-size:12px;color:var(--text-tertiary)">Your API key is stored locally in your browser and never sent anywhere except Anthropic\'s API.</p>';
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('claudeApiKey');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('claudeApiKey').value.trim();
+  localStorage.setItem(CLAUDE_KEY_STORAGE, key);
+  claudeApiKey = key;
+  showToast(key ? 'API key saved' : 'API key cleared');
+}
+
+async function testApiKey() {
+  const key = document.getElementById('claudeApiKey').value.trim();
+  if (!key) { showToast('Enter an API key first'); return; }
+
+  const btn = document.getElementById('testKeyBtn');
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16,
+        messages: [{ role: 'user', content: 'Reply with the word OK' }]
+      })
+    });
+
+    if (resp.ok) {
+      showToast('API key is valid');
+    } else if (resp.status === 401) {
+      showToast('Invalid API key');
+    } else {
+      showToast('API error: ' + resp.status);
+    }
+  } catch (e) {
+    showToast('Failed to connect to Claude API');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Test';
+  }
 }
 
 // --- Init ---
