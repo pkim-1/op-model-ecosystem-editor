@@ -538,6 +538,33 @@ body {
   .add-item-form .form-row { grid-template-columns: 1fr; }
 }
 
+/* AI Analysis button */
+.btn-ai {
+  background: linear-gradient(135deg, var(--purple), #5b21b6);
+  color: var(--white);
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+.btn-ai:hover { opacity: 0.9; }
+.btn-ai:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.loading-dots::after {
+  content: '';
+  animation: dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%  { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
 /* File input hidden */
 .file-input { display: none; }
 </style>
@@ -590,6 +617,8 @@ body {
 
 // --- Data Layer ---
 const STORAGE_KEY = 'meeting_tracker_data';
+const CLAUDE_KEY_STORAGE = 'meeting_tracker_claude_key';
+let claudeApiKey = localStorage.getItem(CLAUDE_KEY_STORAGE) || '';
 
 function loadData() {
   try {
@@ -850,7 +879,11 @@ function renderMeetingForm(el, meeting) {
   html += '</div>';
   html += '<div class="form-group"><label>Paste Zoom Transcript</label>';
   html += '<textarea id="transcriptText" rows="10" placeholder="Paste your Zoom meeting transcript here..."></textarea></div>';
-  html += '<button class="btn btn-primary" onclick="parseTranscript()">Parse Transcript</button>';
+  const hasKey = !!localStorage.getItem(CLAUDE_KEY_STORAGE);
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  html += '<button class="btn btn-secondary" onclick="parseTranscript()">Parse Transcript</button>';
+  html += '<button class="btn btn-ai" id="aiAnalyzeBtn" onclick="aiAnalyzeTranscript()"' + (hasKey ? '' : ' disabled title="Configure API key in Settings first"') + '>AI Analysis</button>';
+  html += '</div>';
   html += '<div id="parsedReview" style="margin-top:16px"></div>';
   html += '</div>';
 
@@ -1448,10 +1481,162 @@ function importJSON(event) {
   event.target.value = '';
 }
 
-// --- Claude API Key ---
-const CLAUDE_KEY_STORAGE = 'meeting_tracker_claude_key';
-let claudeApiKey = localStorage.getItem(CLAUDE_KEY_STORAGE) || '';
+// --- AI Transcript Analysis ---
+async function aiAnalyzeTranscript() {
+  const transcript = document.getElementById('transcriptText').value.trim();
+  if (!transcript) { showToast('Paste a transcript first'); return; }
 
+  const key = localStorage.getItem(CLAUDE_KEY_STORAGE);
+  if (!key) { showToast('Configure API key in Settings first'); return; }
+
+  const btn = document.getElementById('aiAnalyzeBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = 'Analyzing<span class="loading-dots"></span>';
+
+  const participants = document.getElementById('meetingParticipants').value.trim();
+
+  const systemPrompt = `You are a meeting transcript analyzer. Extract structured information from the transcript and return ONLY valid JSON (no markdown fences, no explanation).
+
+Return this exact JSON structure:
+{
+  "participants": ["Name1", "Name2"],
+  "topics": [
+    {
+      "name": "Topic Name",
+      "items": [
+        {
+          "type": "action|decision|discussion",
+          "text": "Description",
+          "assignee": "Person or empty string",
+          "status": "open|in-progress|blocked|waiting",
+          "blocker": "Description of blocker or empty string",
+          "project": "Auto-detected project/tool name or empty string",
+          "context": "Brief context for decisions"
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+- Extract action items with explicit owners
+- Detect implicit assignments: "I'll handle X" assigns to the speaker, "Erica is working on Y" assigns to Erica
+- Identify blockers and dependencies
+- Extract decisions with rationale/context
+- Group related items by topic/subject
+- Auto-detect project names, tool names, and systems mentioned
+- Set status: "open" for new items, "in-progress" for ongoing work, "blocked" if a blocker is mentioned, "waiting" if waiting on someone/something
+- Include ALL meaningful items, not just action items
+- Return ONLY the JSON object, nothing else`;
+
+  const userMessage = (participants ? 'Meeting participants: ' + participants + '\n\n' : '') + 'Transcript:\n' + transcript;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }]
+      })
+    });
+
+    if (!resp.ok) {
+      if (resp.status === 401) { showToast('Invalid API key - check Settings'); return; }
+      if (resp.status === 429) { showToast('Rate limited - try again in a moment'); return; }
+      showToast('API error: ' + resp.status);
+      return;
+    }
+
+    const data = await resp.json();
+    let content = data.content?.[0]?.text || '';
+
+    // Strip markdown code fences if present
+    content = content.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+
+    let result;
+    try {
+      result = JSON.parse(content);
+    } catch (e) {
+      showToast('Failed to parse AI response');
+      return;
+    }
+
+    // Fill participants from AI response
+    if (result.participants && result.participants.length > 0) {
+      const partInput = document.getElementById('meetingParticipants');
+      const existing = partInput.value.split(',').map(s => s.trim()).filter(Boolean);
+      const merged = new Set([...existing, ...result.participants]);
+      partInput.value = [...merged].join(', ');
+    }
+
+    // Flatten topics into _parsedItems
+    _parsedItems = [];
+    if (result.topics && Array.isArray(result.topics)) {
+      result.topics.forEach(topic => {
+        if (!topic.items || !Array.isArray(topic.items)) return;
+        topic.items.forEach(item => {
+          let text = item.text || '';
+          // Append context for decisions
+          if (item.type === 'decision' && item.context) {
+            text += ' (Context: ' + item.context + ')';
+          }
+          // Append blocker info
+          if (item.blocker) {
+            text += ' (Blocked: ' + item.blocker + ')';
+          }
+          // Prepend topic name
+          if (topic.name) {
+            text = '[' + topic.name + '] ' + text;
+          }
+
+          // Map status to app's status values
+          let status = 'open';
+          if (item.status === 'in-progress' || item.status === 'blocked' || item.status === 'waiting') {
+            status = 'pending';
+          } else if (item.status === 'open') {
+            status = 'open';
+          }
+
+          _parsedItems.push({
+            id: generateId(),
+            type: item.type === 'action' || item.type === 'decision' || item.type === 'discussion' ? item.type : 'discussion',
+            text: text,
+            assignee: item.assignee || '',
+            project: item.project || '',
+            status: status,
+            dueDate: null,
+            createdAt: new Date().toISOString()
+          });
+        });
+      });
+    }
+
+    renderParsedReview();
+    showToast('AI analysis complete - ' + _parsedItems.length + ' items extracted');
+
+  } catch (e) {
+    showToast('Failed to connect to Claude API');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+    // Re-check if key exists for disabled state
+    if (!localStorage.getItem(CLAUDE_KEY_STORAGE)) {
+      btn.disabled = true;
+      btn.title = 'Configure API key in Settings first';
+    }
+  }
+}
+
+// --- Settings View ---
 function renderSettings(el) {
   const savedKey = localStorage.getItem(CLAUDE_KEY_STORAGE) || '';
   let html = '<div class="actions-bar"><h2>Settings</h2></div>';
