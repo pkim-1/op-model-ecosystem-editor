@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waypoint</title>
+<style>
+/* ── CSS Custom Properties ── */
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-hover: #fafafa;
+  --text: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --accent: #000099;
+  --accent-hover: #4248ED;
+  --accent-light: rgba(0, 0, 153, 0.08);
+  --border: #e5e5e7;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.12);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --sidebar-width: 240px;
+  --panel-width: 400px;
+  --header-height: 56px;
+  --column-bg: #f0f0f2;
+  --drag-over: rgba(66, 72, 237, 0.1);
+  --overlay: rgba(0,0,0,0.3);
+  --label-bug: #ff3b30;
+  --label-feature: #007aff;
+  --label-urgent: #ff9500;
+  --label-learning: #34c759;
+  --label-setup: #af52de;
+  --label-config: #5ac8fa;
+  --progress-bg: #e5e5e7;
+  --done-text: #34c759;
+}
+[data-theme="dark"] {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface-hover: #1c2844;
+  --text: #e0e0e0;
+  --text-secondary: #8a8a9a;
+  --accent: #4248ED;
+  --accent-hover: #5b60ff;
+  --accent-light: rgba(66, 72, 237, 0.15);
+  --border: #2a2a4a;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.4);
+  --column-bg: #12122a;
+  --drag-over: rgba(66, 72, 237, 0.2);
+  --overlay: rgba(0,0,0,0.6);
+  --progress-bg: #2a2a4a;
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: grid;
+  grid-template-rows: var(--header-height) 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  transition: background 0.3s, color 0.3s;
+  overflow: hidden;
+}
+body.sidebar-collapsed { grid-template-columns: 0px 1fr; }
+body.sidebar-collapsed .sidebar { transform: translateX(-100%); opacity: 0; pointer-events: none; }
+
+/* ── Header ── */
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.logo svg { width: 24px; height: 24px; }
+.header-search {
+  flex: 1;
+  max-width: 360px;
+  position: relative;
+}
+.header-search input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.header-search input:focus { border-color: var(--accent); }
+.header-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-secondary); }
+.header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.btn {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+.btn-danger { color: #ff3b30; border-color: #ff3b30; }
+.btn-danger:hover { background: #ff3b30; color: #fff; }
+.btn-icon { padding: 7px 8px; }
+.view-toggle { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.view-toggle button {
+  padding: 6px 12px;
+  border: none;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.view-toggle button.active { background: var(--accent); color: #fff; }
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px;
+  overflow-y: auto;
+  transition: transform 0.3s, opacity 0.3s;
+}
+.sidebar h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin: 16px 0 8px;
+}
+.sidebar h3:first-child { margin-top: 0; }
+.filter-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.filter-group label:hover { background: var(--accent-light); }
+.filter-group input[type="checkbox"],
+.filter-group input[type="radio"] { accent-color: var(--accent); }
+.label-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Board View ── */
+.board {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  overflow-x: auto;
+  height: 100%;
+}
+.column {
+  flex: 1;
+  min-width: 280px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+}
+.column-header h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+.column-count {
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.column-cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--column-bg);
+  border-radius: var(--radius);
+  overflow-y: auto;
+  min-height: 100px;
+  transition: background 0.2s;
+}
+.column-cards.drag-over { background: var(--drag-over); outline: 2px dashed var(--accent); outline-offset: -2px; }
+
+/* ── Card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow);
+}
+.card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.card.dragging { opacity: 0.4; transform: rotate(2deg); }
+.card-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; line-height: 1.3; }
+.card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-labels { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.label-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.card-meta { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-secondary); }
+.card-due { display: flex; align-items: center; gap: 4px; }
+.card-due.overdue { color: #ff3b30; font-weight: 600; }
+.card-progress { flex: 1; display: flex; align-items: center; gap: 6px; }
+.progress-bar { flex: 1; height: 4px; background: var(--progress-bg); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+.progress-fill.complete { background: var(--done-text); }
+
+/* ── List View ── */
+.list-view {
+  padding: 20px;
+  overflow-y: auto;
+  display: none;
+  height: 100%;
+}
+.list-view.active { display: block; }
+.board.active { display: flex; }
+.board:not(.active) { display: none; }
+.list-group { margin-bottom: 24px; }
+.list-group-header {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border);
+}
+.list-item:hover { background: var(--accent-light); }
+.list-item-title { flex: 1; font-size: 14px; font-weight: 500; }
+.list-item-title.done-task { text-decoration: line-through; color: var(--text-secondary); }
+.list-item .card-labels { margin-bottom: 0; }
+.list-item .card-due { font-size: 12px; }
+.list-item .card-progress { max-width: 120px; }
+
+/* ── Task Panel (slide-in) ── */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.panel-overlay.open { opacity: 1; pointer-events: all; }
+.task-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--panel-width);
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 201;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.task-panel.open { transform: translateX(0); }
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-close {
+  width: 32px; height: 32px;
+  border: none;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.panel-close:hover { background: var(--border); color: var(--text); }
+.panel-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+.field-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.field-group input[type="text"],
+.field-group input[type="date"],
+.field-group textarea,
+.field-group select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field-group input:focus,
+.field-group textarea:focus,
+.field-group select:focus { border-color: var(--accent); }
+.field-group textarea { min-height: 80px; resize: vertical; }
+.label-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.label-toggle {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  color: #fff;
+  opacity: 0.4;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+.label-toggle.active { opacity: 1; border-color: var(--text); }
+.checklist-items { display: flex; flex-direction: column; gap: 4px; }
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.checklist-item input[type="checkbox"] { accent-color: var(--accent); flex-shrink: 0; }
+.checklist-item span { font-size: 14px; flex: 1; }
+.checklist-item span.checked { text-decoration: line-through; color: var(--text-secondary); }
+.checklist-item button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.checklist-item:hover button { opacity: 1; }
+.add-checklist {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.add-checklist input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.add-checklist input:focus { border-color: var(--accent); }
+.panel-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ── Quick Add Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 380px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+}
+.modal h2 { font-size: 16px; margin-bottom: 16px; }
+.modal .field-group { margin-bottom: 12px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+/* ── Transitions ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <button class="btn btn-icon sidebar-toggle" title="Toggle sidebar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    Waypoint
+  </div>
+  <div class="header-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="Search tasks...">
+  </div>
+  <div class="header-actions">
+    <div class="view-toggle">
+      <button class="active" data-view="board">Board</button>
+      <button data-view="list">List</button>
+    </div>
+    <button class="btn btn-primary" id="newTaskBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      New Task
+    </button>
+    <button class="btn btn-icon" id="themeToggle" title="Toggle theme">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <h3>Status</h3>
+  <div class="filter-group" id="statusFilters">
+    <label><input type="checkbox" value="todo" checked> To Do</label>
+    <label><input type="checkbox" value="inprogress" checked> In Progress</label>
+    <label><input type="checkbox" value="done" checked> Done</label>
+  </div>
+  <h3>Labels</h3>
+  <div class="filter-group" id="labelFilters"></div>
+  <h3>Due Date</h3>
+  <div class="filter-group" id="dueDateFilters">
+    <label><input type="radio" name="due" value="all" checked> All</label>
+    <label><input type="radio" name="due" value="overdue"> Overdue</label>
+    <label><input type="radio" name="due" value="today"> Today</label>
+    <label><input type="radio" name="due" value="week"> This Week</label>
+  </div>
+</aside>
+
+<!-- Board View -->
+<main class="board active" id="boardView">
+  <div class="column" data-status="todo">
+    <div class="column-header"><h2>To Do</h2><span class="column-count">0</span></div>
+    <div class="column-cards" data-status="todo"></div>
+  </div>
+  <div class="column" data-status="inprogress">
+    <div class="column-header"><h2>In Progress</h2><span class="column-count">0</span></div>
+    <div class="column-cards" data-status="inprogress"></div>
+  </div>
+  <div class="column" data-status="done">
+    <div class="column-header"><h2>Done</h2><span class="column-count">0</span></div>
+    <div class="column-cards" data-status="done"></div>
+  </div>
+</main>
+
+<!-- List View -->
+<main class="list-view" id="listView"></main>
+
+<!-- Panel Overlay -->
+<div class="panel-overlay" id="panelOverlay"></div>
+
+<!-- Task Detail Panel -->
+<div class="task-panel" id="taskPanel">
+  <div class="panel-header">
+    <span style="font-weight:600;font-size:14px">Task Details</span>
+    <button class="panel-close" id="panelClose">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="panel-footer">
+    <button class="btn btn-danger" id="deleteTaskBtn">Delete Task</button>
+  </div>
+</div>
+
+<!-- Quick Add Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>New Task</h2>
+    <div class="field-group">
+      <label for="newTitle">Title</label>
+      <input type="text" id="newTitle" placeholder="What needs to be done?">
+    </div>
+    <div class="field-group">
+      <label for="newStatus">Status</label>
+      <select id="newStatus">
+        <option value="todo">To Do</option>
+        <option value="inprogress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalAdd">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ──
+const LABELS = {
+  bug:      { name: 'Bug',      color: '#ff3b30' },
+  feature:  { name: 'Feature',  color: '#007aff' },
+  urgent:   { name: 'Urgent',   color: '#ff9500' },
+  learning: { name: 'Learning', color: '#34c759' },
+  setup:    { name: 'Setup',    color: '#af52de' },
+  config:   { name: 'Config',   color: '#5ac8fa' },
+};
+const STORAGE_KEY = 'waypoint_tasks';
+const THEME_KEY = 'waypoint_theme';
+
+// ── Sample Data ──
+function getSampleTasks() {
+  return [
+    {
+      id: crypto.randomUUID(), title: 'Install Claude Code', status: 'done',
+      description: 'Download and install the Claude Code CLI tool to enable AI-assisted development directly from the terminal.',
+      labels: ['setup', 'learning'], dueDate: '2026-04-20',
+      checklist: [{ text: 'Download CLI', done: true }, { text: 'Run installer', done: true }, { text: 'Verify installation', done: true }],
+      createdAt: '2026-04-18T10:00:00Z', completedAt: '2026-04-20T14:30:00Z'
+    },
+    {
+      id: crypto.randomUUID(), title: 'Create a Project Folder', status: 'done',
+      description: 'Set up the base project directory with proper structure for the Claude Code training exercises.',
+      labels: ['setup'], dueDate: '2026-04-21',
+      checklist: [{ text: 'Choose location', done: true }, { text: 'Create folder', done: true }, { text: 'Initialize git', done: true }],
+      createdAt: '2026-04-18T10:00:00Z', completedAt: '2026-04-21T11:00:00Z'
+    },
+    {
+      id: crypto.randomUUID(), title: 'Open Claude Code', status: 'done',
+      description: 'Launch Claude Code in the terminal and verify it connects properly. Explore the basic commands and interface.',
+      labels: ['learning'], dueDate: '2026-04-22',
+      checklist: [{ text: 'Launch terminal', done: true }, { text: 'Run claude command', done: true }],
+      createdAt: '2026-04-18T10:00:00Z', completedAt: '2026-04-22T09:15:00Z'
+    },
+    {
+      id: crypto.randomUUID(), title: 'Vibe-Code a Simple Web App', status: 'inprogress',
+      description: 'Build a simple web app using Claude Code to experience the vibe-coding workflow. Describe what you want and let AI generate the code.',
+      labels: ['feature'], dueDate: '2026-04-24',
+      checklist: [{ text: 'Choose app idea', done: true }, { text: 'Write prompt', done: true }, { text: 'Generate code', done: false }, { text: 'Test & iterate', done: false }],
+      createdAt: '2026-04-22T10:00:00Z', completedAt: null
+    },
+    {
+      id: crypto.randomUUID(), title: 'Set-up Project Folder', status: 'todo',
+      description: 'Configure the project folder with all necessary files and structure for a production-ready setup.',
+      labels: ['setup', 'config'], dueDate: '2026-04-25',
+      checklist: [{ text: 'Create directory structure', done: false }, { text: 'Add .gitignore', done: false }, { text: 'Initialize npm', done: false }],
+      createdAt: '2026-04-22T10:00:00Z', completedAt: null
+    },
+    {
+      id: crypto.randomUUID(), title: 'Connect to MCPs', status: 'todo',
+      description: 'Configure Model Context Protocol servers to extend Claude Code with external tools like Slack, Jira, and databases.',
+      labels: ['config'], dueDate: '2026-04-26',
+      checklist: [{ text: 'Configure MCP servers', done: false }, { text: 'Test connections', done: false }],
+      createdAt: '2026-04-22T10:00:00Z', completedAt: null
+    },
+    {
+      id: crypto.randomUUID(), title: 'Install Skills', status: 'todo',
+      description: 'Browse and install Claude Code skills to add specialized capabilities like code review, commit helpers, and deployment tools.',
+      labels: ['config', 'learning'], dueDate: '2026-04-27',
+      checklist: [{ text: 'Browse available skills', done: false }, { text: 'Install selected skills', done: false }],
+      createdAt: '2026-04-22T10:00:00Z', completedAt: null
+    },
+  ];
+}
+
+// ── State ──
+let tasks = [];
+let currentTaskId = null;
+let currentView = 'board';
+
+// ── Persistence ──
+function loadTasks() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) { tasks = JSON.parse(stored); }
+  else { tasks = getSampleTasks(); saveTasks(); }
+}
+function saveTasks() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+
+// ── Theme ──
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem(THEME_KEY, next);
+  updateThemeIcon();
+}
+function updateThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.getElementById('themeToggle').innerHTML = isDark
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+}
+
+// ── Filters ──
+function getFilters() {
+  const statuses = [...document.querySelectorAll('#statusFilters input:checked')].map(i => i.value);
+  const labels = [...document.querySelectorAll('#labelFilters input:checked')].map(i => i.value);
+  const due = document.querySelector('#dueDateFilters input:checked')?.value || 'all';
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  return { statuses, labels, due, search };
+}
+function filterTasks() {
+  const f = getFilters();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7);
+  return tasks.filter(t => {
+    if (!f.statuses.includes(t.status)) return false;
+    if (f.labels.length > 0 && !t.labels.some(l => f.labels.includes(l))) return false;
+    if (f.due !== 'all' && t.dueDate) {
+      const d = new Date(t.dueDate + 'T00:00:00');
+      if (f.due === 'overdue' && d >= today) return false;
+      if (f.due === 'today' && (d < today || d >= new Date(today.getTime() + 86400000))) return false;
+      if (f.due === 'week' && (d < today || d >= weekEnd)) return false;
+    }
+    if (f.search && !t.title.toLowerCase().includes(f.search) && !t.description.toLowerCase().includes(f.search)) return false;
+    return true;
+  });
+}
+
+// ── Rendering: Board ──
+function renderBoard() {
+  const filtered = filterTasks();
+  ['todo', 'inprogress', 'done'].forEach(status => {
+    const cards = document.querySelector(`.column-cards[data-status="${status}"]`);
+    const count = document.querySelector(`.column[data-status="${status}"] .column-count`);
+    const statusTasks = filtered.filter(t => t.status === status);
+    count.textContent = statusTasks.length;
+    cards.innerHTML = '';
+    statusTasks.forEach(t => cards.appendChild(createCard(t)));
+  });
+}
+
+function createCard(task) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.draggable = true;
+  card.dataset.id = task.id;
+  const done = task.checklist.filter(c => c.done).length;
+  const total = task.checklist.length;
+  const pct = total > 0 ? (done / total * 100) : 0;
+  const isOverdue = task.dueDate && new Date(task.dueDate + 'T00:00:00') < new Date() && task.status !== 'done';
+  card.innerHTML = `
+    <div class="card-labels">${task.labels.map(l => `<span class="label-chip" style="background:${LABELS[l]?.color}">${LABELS[l]?.name || l}</span>`).join('')}</div>
+    <div class="card-title">${esc(task.title)}</div>
+    ${task.description ? `<div class="card-desc">${esc(task.description)}</div>` : ''}
+    <div class="card-meta">
+      ${task.dueDate ? `<span class="card-due ${isOverdue ? 'overdue' : ''}">${svgCal()} ${formatDate(task.dueDate)}</span>` : ''}
+      ${total > 0 ? `<span class="card-progress"><span class="progress-bar"><span class="progress-fill ${pct === 100 ? 'complete' : ''}" style="width:${pct}%"></span></span>${done}/${total}</span>` : ''}
+    </div>`;
+  card.addEventListener('click', () => openPanel(task.id));
+  card.addEventListener('dragstart', onDragStart);
+  card.addEventListener('dragend', onDragEnd);
+  return card;
+}
+
+// ── Rendering: List ──
+function renderList() {
+  const filtered = filterTasks();
+  const lv = document.getElementById('listView');
+  lv.innerHTML = '';
+  ['todo', 'inprogress', 'done'].forEach(status => {
+    const statusTasks = filtered.filter(t => t.status === status);
+    if (statusTasks.length === 0) return;
+    const group = document.createElement('div');
+    group.className = 'list-group';
+    const label = { todo: 'To Do', inprogress: 'In Progress', done: 'Done' }[status];
+    group.innerHTML = `<div class="list-group-header">${label} (${statusTasks.length})</div>`;
+    statusTasks.forEach(t => {
+      const done = t.checklist.filter(c => c.done).length;
+      const total = t.checklist.length;
+      const pct = total > 0 ? (done / total * 100) : 0;
+      const isOverdue = t.dueDate && new Date(t.dueDate + 'T00:00:00') < new Date() && t.status !== 'done';
+      const item = document.createElement('div');
+      item.className = 'list-item';
+      item.draggable = true;
+      item.dataset.id = t.id;
+      item.innerHTML = `
+        <span class="list-item-title ${t.status === 'done' ? 'done-task' : ''}">${esc(t.title)}</span>
+        <div class="card-labels">${t.labels.map(l => `<span class="label-chip" style="background:${LABELS[l]?.color}">${LABELS[l]?.name || l}</span>`).join('')}</div>
+        ${t.dueDate ? `<span class="card-due ${isOverdue ? 'overdue' : ''}">${formatDate(t.dueDate)}</span>` : ''}
+        ${total > 0 ? `<span class="card-progress"><span class="progress-bar"><span class="progress-fill ${pct === 100 ? 'complete' : ''}" style="width:${pct}%"></span></span>${done}/${total}</span>` : ''}`;
+      item.addEventListener('click', () => openPanel(t.id));
+      item.addEventListener('dragstart', onDragStart);
+      item.addEventListener('dragend', onDragEnd);
+      group.appendChild(item);
+    });
+    lv.appendChild(group);
+  });
+}
+
+// ── Rendering: Sidebar Labels ──
+function renderLabelFilters() {
+  const el = document.getElementById('labelFilters');
+  el.innerHTML = Object.entries(LABELS).map(([k, v]) =>
+    `<label><input type="checkbox" value="${k}"><span class="label-dot" style="background:${v.color}"></span> ${v.name}</label>`
+  ).join('');
+}
+
+// ── Task Panel ──
+function openPanel(id) {
+  currentTaskId = id;
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  const body = document.getElementById('panelBody');
+  const done = task.checklist.filter(c => c.done).length;
+  const total = task.checklist.length;
+  body.innerHTML = `
+    <div class="field-group">
+      <label>Title</label>
+      <input type="text" id="panelTitle" value="${esc(task.title)}">
+    </div>
+    <div class="field-group">
+      <label>Status</label>
+      <select id="panelStatus">
+        <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>To Do</option>
+        <option value="inprogress" ${task.status === 'inprogress' ? 'selected' : ''}>In Progress</option>
+        <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Labels</label>
+      <div class="label-toggles">
+        ${Object.entries(LABELS).map(([k, v]) =>
+          `<span class="label-toggle ${task.labels.includes(k) ? 'active' : ''}" data-label="${k}" style="background:${v.color}">${v.name}</span>`
+        ).join('')}
+      </div>
+    </div>
+    <div class="field-group">
+      <label>Due Date</label>
+      <input type="date" id="panelDue" value="${task.dueDate || ''}">
+    </div>
+    <div class="field-group">
+      <label>Description</label>
+      <textarea id="panelDesc">${esc(task.description)}</textarea>
+    </div>
+    <div class="field-group">
+      <label>Checklist ${total > 0 ? `(${done}/${total})` : ''}</label>
+      <div class="checklist-items" id="panelChecklist">
+        ${task.checklist.map((c, i) => `
+          <div class="checklist-item">
+            <input type="checkbox" data-idx="${i}" ${c.done ? 'checked' : ''}>
+            <span class="${c.done ? 'checked' : ''}">${esc(c.text)}</span>
+            <button data-idx="${i}" title="Remove">&times;</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="add-checklist">
+        <input type="text" id="newCheckItem" placeholder="Add item...">
+        <button class="btn" id="addCheckBtn">Add</button>
+      </div>
+    </div>`;
+
+  // Event listeners
+  body.querySelector('#panelTitle').addEventListener('input', e => { task.title = e.target.value; saveTasks(); render(); });
+  body.querySelector('#panelStatus').addEventListener('change', e => {
+    task.status = e.target.value;
+    task.completedAt = task.status === 'done' ? new Date().toISOString() : null;
+    saveTasks(); render();
+  });
+  body.querySelector('#panelDue').addEventListener('change', e => { task.dueDate = e.target.value; saveTasks(); render(); });
+  body.querySelector('#panelDesc').addEventListener('input', e => { task.description = e.target.value; saveTasks(); render(); });
+  body.querySelectorAll('.label-toggle').forEach(el => {
+    el.addEventListener('click', () => {
+      const l = el.dataset.label;
+      if (task.labels.includes(l)) task.labels = task.labels.filter(x => x !== l);
+      else task.labels.push(l);
+      el.classList.toggle('active');
+      saveTasks(); render();
+    });
+  });
+  body.querySelectorAll('.checklist-item input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      task.checklist[cb.dataset.idx].done = cb.checked;
+      saveTasks(); openPanel(id); render();
+    });
+  });
+  body.querySelectorAll('.checklist-item button').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      task.checklist.splice(btn.dataset.idx, 1);
+      saveTasks(); openPanel(id); render();
+    });
+  });
+  const addCheck = () => {
+    const inp = body.querySelector('#newCheckItem');
+    if (inp.value.trim()) {
+      task.checklist.push({ text: inp.value.trim(), done: false });
+      saveTasks(); openPanel(id); render();
+    }
+  };
+  body.querySelector('#addCheckBtn').addEventListener('click', addCheck);
+  body.querySelector('#newCheckItem').addEventListener('keydown', e => { if (e.key === 'Enter') addCheck(); });
+
+  document.getElementById('taskPanel').classList.add('open');
+  document.getElementById('panelOverlay').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('taskPanel').classList.remove('open');
+  document.getElementById('panelOverlay').classList.remove('open');
+  currentTaskId = null;
+}
+
+// ── Drag & Drop ──
+let dragId = null;
+function onDragStart(e) {
+  dragId = e.target.dataset.id || e.target.closest('[data-id]')?.dataset.id;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragId = null;
+}
+document.querySelectorAll('.column-cards').forEach(col => {
+  col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over'); });
+  col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+  col.addEventListener('drop', e => {
+    e.preventDefault();
+    col.classList.remove('drag-over');
+    if (!dragId) return;
+    const task = tasks.find(t => t.id === dragId);
+    if (task) {
+      task.status = col.dataset.status;
+      task.completedAt = task.status === 'done' ? new Date().toISOString() : null;
+      saveTasks(); render();
+    }
+  });
+});
+
+// ── Quick Add ──
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('newTitle').value = '';
+  document.getElementById('newStatus').value = 'todo';
+  setTimeout(() => document.getElementById('newTitle').focus(), 100);
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function addTask() {
+  const title = document.getElementById('newTitle').value.trim();
+  if (!title) return;
+  const task = {
+    id: crypto.randomUUID(), title, status: document.getElementById('newStatus').value,
+    description: '', labels: [], dueDate: '', checklist: [],
+    createdAt: new Date().toISOString(), completedAt: null
+  };
+  tasks.unshift(task);
+  saveTasks(); closeModal(); render();
+  openPanel(task.id);
+}
+
+// ── Delete ──
+function deleteTask() {
+  if (!currentTaskId) return;
+  if (!confirm('Delete this task?')) return;
+  tasks = tasks.filter(t => t.id !== currentTaskId);
+  saveTasks(); closePanel(); render();
+}
+
+// ── View Toggle ──
+function setView(view) {
+  currentView = view;
+  document.querySelectorAll('.view-toggle button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.getElementById('boardView').classList.toggle('active', view === 'board');
+  document.getElementById('listView').classList.toggle('active', view === 'list');
+  render();
+}
+
+// ── Render All ──
+function render() {
+  if (currentView === 'board') renderBoard();
+  else renderList();
+}
+
+// ── Helpers ──
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function svgCal() {
+  return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+}
+
+// ── Init ──
+initTheme();
+updateThemeIcon();
+loadTasks();
+renderLabelFilters();
+render();
+
+// Event bindings
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+document.getElementById('newTaskBtn').addEventListener('click', openModal);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+document.getElementById('modalAdd').addEventListener('click', addTask);
+document.getElementById('newTitle').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.getElementById('panelOverlay').addEventListener('click', closePanel);
+document.getElementById('panelClose').addEventListener('click', closePanel);
+document.getElementById('deleteTaskBtn').addEventListener('click', deleteTask);
+document.getElementById('searchInput').addEventListener('input', render);
+document.querySelector('.sidebar-toggle').addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
+document.querySelectorAll('.view-toggle button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+document.querySelectorAll('#statusFilters input, #labelFilters input, #dueDateFilters input').forEach(el => el.addEventListener('change', render));
+// Delegate for dynamically rendered label filter checkboxes
+document.getElementById('labelFilters').addEventListener('change', render);
+</script>
+</body>
+</html>
