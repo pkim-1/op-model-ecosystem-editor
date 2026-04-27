@@ -1,971 +1,2228 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project Dashboard</title>
-  <style>
-    :root {
-      --eg-blue: #000099;
-      --pacific-blue: #4248ED;
-      --white: #FFFFFF;
-      --light-gray: #F5F5F5;
-      --medium-gray: #E0E0E0;
-      --dark-gray: #333333;
-      --text-primary: #1A1A1A;
-      --text-secondary: #666666;
-      --card-radius: 8px;
-      --grid-gap: 20px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waypoint</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+/* ── CSS Custom Properties ── */
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-hover: #fafafa;
+  --text: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --accent: #000099;
+  --accent-hover: #4248ED;
+  --accent-light: rgba(0, 0, 153, 0.08);
+  --border: #e5e5e7;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.12);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --sidebar-width: 240px;
+  --panel-width: 400px;
+  --header-height: 56px;
+  --column-bg: #f0f0f2;
+  --drag-over: rgba(66, 72, 237, 0.1);
+  --overlay: rgba(0,0,0,0.3);
+  --label-bug: #ff3b30;
+  --label-feature: #007aff;
+  --label-urgent: #ff9500;
+  --label-learning: #34c759;
+  --label-setup: #af52de;
+  --label-config: #5ac8fa;
+  --label-action: #ff6b35;
+  --label-decision: #00a878;
+  --progress-bg: #e5e5e7;
+  --done-text: #34c759;
+}
+[data-theme="dark"] {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface-hover: #1c2844;
+  --text: #e0e0e0;
+  --text-secondary: #8a8a9a;
+  --accent: #4248ED;
+  --accent-hover: #5b60ff;
+  --accent-light: rgba(66, 72, 237, 0.15);
+  --border: #2a2a4a;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.4);
+  --column-bg: #12122a;
+  --drag-over: rgba(66, 72, 237, 0.2);
+  --overlay: rgba(0,0,0,0.6);
+  --progress-bg: #2a2a4a;
+}
 
-    * {
-      box-sizing: border-box;
-    }
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: grid;
+  grid-template-rows: var(--header-height) 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  transition: background 0.3s, color 0.3s;
+  overflow: hidden;
+}
+body.sidebar-collapsed { grid-template-columns: 0px 1fr; }
+body.sidebar-collapsed .sidebar { transform: translateX(-100%); opacity: 0; pointer-events: none; }
 
-    body {
-      margin: 0;
-      padding: 0;
-      background: var(--light-gray);
-      color: var(--text-primary);
-      font-family: 'Centra No2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
+/* ── Header ── */
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.logo svg { width: 24px; height: 24px; }
+.header-search {
+  flex: 1;
+  max-width: 360px;
+  position: relative;
+}
+.header-search input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.header-search input:focus { border-color: var(--accent); }
+.header-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-secondary); }
+.header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.btn {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+.btn-danger { color: #ff3b30; border-color: #ff3b30; }
+.btn-danger:hover { background: #ff3b30; color: #fff; }
+.btn-icon { padding: 7px 8px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.view-toggle { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.view-toggle button {
+  padding: 6px 12px;
+  border: none;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.view-toggle button.active { background: var(--accent); color: #fff; }
 
-    header {
-      background: var(--eg-blue);
-      color: var(--white);
-      padding: 24px;
-      text-align: center;
-    }
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px;
+  overflow-y: auto;
+  transition: transform 0.3s, opacity 0.3s;
+}
+.sidebar h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin: 16px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar h3:first-child { margin-top: 0; }
+.sidebar h3 a {
+  font-size: 10px;
+  color: var(--accent);
+  text-decoration: none;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  cursor: pointer;
+}
+.sidebar h3 a:hover { text-decoration: underline; }
+.filter-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.filter-group label:hover { background: var(--accent-light); }
+.filter-group input[type="checkbox"],
+.filter-group input[type="radio"] { accent-color: var(--accent); }
+.label-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
-    header h1 {
-      margin: 0 0 8px 0;
-      font-size: 1.8rem;
-    }
+/* ── Board View ── */
+.board {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  overflow-x: auto;
+  height: 100%;
+}
+.column {
+  flex: 1;
+  min-width: 280px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+}
+.column-header h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+.column-count {
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.column-cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--column-bg);
+  border-radius: var(--radius);
+  overflow-y: auto;
+  min-height: 100px;
+  transition: background 0.2s;
+}
+.column-cards.drag-over { background: var(--drag-over); outline: 2px dashed var(--accent); outline-offset: -2px; }
 
-    header #repo-count {
-      font-size: 0.95rem;
-      opacity: 0.85;
-    }
+/* ── Card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow);
+}
+.card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.card.dragging { opacity: 0.4; transform: rotate(2deg); }
+.card-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; line-height: 1.3; }
+.card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-labels { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.label-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.card-meta { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-secondary); flex-wrap: wrap; }
+.card-due { display: flex; align-items: center; gap: 4px; }
+.card-due.overdue { color: #ff3b30; font-weight: 600; }
+.card-progress { flex: 1; display: flex; align-items: center; gap: 6px; }
+.progress-bar { flex: 1; height: 4px; background: var(--progress-bg); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+.progress-fill.complete { background: var(--done-text); }
 
-    #project-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: var(--grid-gap);
-      padding: var(--grid-gap);
-      max-width: 1400px;
-      margin: 0 auto;
-    }
+/* ── Card: Assignee & Meeting ── */
+.avatar-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+.card-assignee {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.meeting-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 1px 7px;
+  border-radius: 8px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-    .card {
-      background: var(--white);
-      border-radius: var(--card-radius);
-      padding: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      position: relative;
-    }
+/* ── List View ── */
+.list-view {
+  padding: 20px;
+  overflow-y: auto;
+  display: none;
+  height: 100%;
+}
+.list-view.active { display: block; }
+.board.active { display: flex; }
+.board:not(.active) { display: none; }
+.list-group { margin-bottom: 24px; }
+.list-group-header {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border);
+}
+.list-item:hover { background: var(--accent-light); }
+.list-item-title { flex: 1; font-size: 14px; font-weight: 500; }
+.list-item-title.done-task { text-decoration: line-through; color: var(--text-secondary); }
+.list-item .card-labels { margin-bottom: 0; }
+.list-item .card-due { font-size: 12px; }
+.list-item .card-progress { max-width: 120px; }
 
-    .card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transform: translateY(-2px);
-    }
+/* ── Task Panel (slide-in) ── */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.panel-overlay.open { opacity: 1; pointer-events: all; }
+.task-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--panel-width);
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 201;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.task-panel.open { transform: translateX(0); }
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-close {
+  width: 32px; height: 32px;
+  border: none;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.panel-close:hover { background: var(--border); color: var(--text); }
+.panel-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+.field-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.field-group input[type="text"],
+.field-group input[type="date"],
+.field-group textarea,
+.field-group select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field-group input:focus,
+.field-group textarea:focus,
+.field-group select:focus { border-color: var(--accent); }
+.field-group textarea { min-height: 80px; resize: vertical; }
+.label-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.label-toggle {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  color: #fff;
+  opacity: 0.4;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+.label-toggle.active { opacity: 1; border-color: var(--text); }
+.checklist-items { display: flex; flex-direction: column; gap: 4px; }
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.checklist-item input[type="checkbox"] { accent-color: var(--accent); flex-shrink: 0; }
+.checklist-item span { font-size: 14px; flex: 1; }
+.checklist-item span.checked { text-decoration: line-through; color: var(--text-secondary); }
+.checklist-item button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.checklist-item:hover button { opacity: 1; }
+.add-checklist {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.add-checklist input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.add-checklist input:focus { border-color: var(--accent); }
+.panel-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
 
-    .card h3 {
-      margin: 0 0 8px 0;
-      color: var(--eg-blue);
-      font-size: 1.1rem;
-    }
+/* ── Quick Add Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 380px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+}
+.modal h2 { font-size: 16px; margin-bottom: 16px; }
+.modal .field-group { margin-bottom: 12px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
-    .card p {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-      margin: 0 0 12px 0;
-      line-height: 1.4;
-    }
+/* ── Transcript Modal ── */
+.transcript-modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0;
+  width: 680px;
+  max-width: 95vw;
+  max-height: 90vh;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.transcript-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.transcript-modal-header h2 { font-size: 16px; font-weight: 700; }
+.transcript-modal-body { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.tab-bar { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; align-self: flex-start; }
+.tab-bar button {
+  padding: 7px 18px;
+  border: none;
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-bar button.active { background: var(--accent); color: #fff; }
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.drag-hover { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+.drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-zone .drop-icon { font-size: 28px; margin-bottom: 8px; display: block; color: var(--text-secondary); }
+.transcript-textarea {
+  width: 100%;
+  min-height: 120px;
+  max-height: 200px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  resize: vertical;
+  outline: none;
+}
+.transcript-textarea:focus { border-color: var(--accent); }
+.transcript-meta { display: flex; gap: 12px; }
+.transcript-meta .field-group { flex: 1; }
+.transcript-meta .field-group input { font-size: 13px; }
+.parse-actions { display: flex; gap: 8px; align-items: center; }
+.parse-actions .btn { font-size: 13px; }
 
-    .project-card {
-      cursor: pointer;
-      text-decoration: none;
-      display: block;
-    }
+/* ── Transcript Review Table ── */
+.review-section { margin-top: 8px; }
+.review-section h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+.review-table { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+.review-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+.review-item select {
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  min-width: 90px;
+}
+.review-item .review-text { flex: 1; line-height: 1.4; }
+.review-item .review-assignee {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 2px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.review-item .review-remove {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+  line-height: 1;
+}
+.review-item .review-remove:hover { color: #ff3b30; }
+.review-item input[type="checkbox"] { accent-color: var(--accent); flex-shrink: 0; }
+.review-accept { margin-top: 12px; display: flex; gap: 8px; justify-content: flex-end; }
+.review-stats { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
 
-    .project-card:focus-visible {
-      outline: 2px solid var(--pacific-blue);
-      outline-offset: 2px;
-    }
+/* ── Settings Modal ── */
+.settings-modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 440px;
+  max-width: 95vw;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+}
+.settings-modal h2 { font-size: 16px; margin-bottom: 20px; }
+.settings-modal .field-group { margin-bottom: 16px; }
+.settings-modal .field-group input { font-size: 13px; }
+.settings-modal .field-group small { display: block; margin-top: 4px; font-size: 11px; color: var(--text-secondary); }
+.settings-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+.settings-status.connected { background: rgba(52,199,89,0.1); color: #34c759; }
+.settings-status.disconnected { background: rgba(255,59,48,0.1); color: #ff3b30; }
 
-    .card-description {
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
+/* ── Team Management Modal ── */
+.team-modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 400px;
+  max-width: 95vw;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+}
+.team-modal h2 { font-size: 16px; margin-bottom: 16px; }
+.team-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; margin-bottom: 12px; }
+.team-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+.team-member-row .avatar-chip { flex-shrink: 0; }
+.team-member-row span { flex: 1; font-size: 14px; }
+.team-member-row .member-source { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; }
+.team-member-row button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+}
+.team-member-row button:hover { color: #ff3b30; }
+.add-member-row { display: flex; gap: 8px; }
+.add-member-row input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.add-member-row input:focus { border-color: var(--accent); }
 
-    .card-meta {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-      margin-top: 12px;
-    }
+/* ── Toast Notifications ── */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  animation: toast-in 0.3s ease, toast-out 0.3s ease 2.7s forwards;
+  max-width: 320px;
+}
+.toast.error { border-color: #ff3b30; color: #ff3b30; }
+.toast.success { border-color: #34c759; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toast-out { from { opacity: 1; } to { opacity: 0; } }
 
-    .card-topics {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
+/* ── Loading Dots ── */
+.loading-dots::after {
+  content: '';
+  animation: dots 1.2s steps(4, end) infinite;
+}
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
 
-    .topic-chip {
-      display: inline-block;
-      background: var(--light-gray);
-      color: var(--text-secondary);
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      margin: 2px;
-    }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
-    .language-badge {
-      display: inline-block;
-      background: var(--pacific-blue);
-      color: var(--white);
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-
-    .type-badge {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      display: inline-block;
-      color: #FFFFFF;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-      z-index: 1;
-    }
-
-    .type-badge.tool { background: #4248ED; }
-    .type-badge.analysis { background: #FF8C00; }
-    .type-badge.visualization { background: #9B59B6; }
-
-    #status {
-      text-align: center;
-      padding: 40px;
-      font-size: 1rem;
-      color: var(--text-secondary);
-    }
-
-    #error {
-      text-align: center;
-      padding: 20px;
-      background: #FFF3F3;
-      border: 1px solid #FFD0D0;
-      border-radius: var(--card-radius);
-      max-width: 600px;
-      margin: 20px auto;
-      color: var(--dark-gray);
-    }
-
-    #error button, #token-prompt button {
-      background: var(--eg-blue);
-      color: var(--white);
-      border: none;
-      padding: 8px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin: 4px;
-    }
-
-    #token-prompt {
-      text-align: center;
-      padding: 20px;
-      background: var(--white);
-      border: 1px solid var(--medium-gray);
-      border-radius: var(--card-radius);
-      max-width: 500px;
-      margin: 20px auto;
-    }
-
-    #token-prompt input {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid var(--medium-gray);
-      border-radius: 4px;
-      margin: 8px 0;
-      box-sizing: border-box;
-    }
-
-    #token-prompt .skip-link {
-      color: var(--pacific-blue);
-      cursor: pointer;
-      text-decoration: underline;
-      font-size: 0.9rem;
-    }
-
-    #controls {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: var(--grid-gap);
-    }
-
-    #search-sort-row {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    #search-wrapper {
-      flex: 1;
-      position: relative;
-    }
-
-    #search-input {
-      width: 100%;
-      padding: 10px 36px 10px 12px;
-      border: 1px solid var(--medium-gray);
-      border-radius: var(--card-radius);
-      font-size: 0.95rem;
-      font-family: inherit;
-    }
-
-    #search-input:focus {
-      border-color: var(--eg-blue);
-      outline: none;
-      box-shadow: 0 0 0 2px rgba(0,0,153,0.15);
-    }
-
-    #search-clear {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      font-size: 1.2rem;
-      cursor: pointer;
-      color: var(--text-secondary);
-      padding: 4px;
-    }
-
-    #sort-select {
-      padding: 10px 12px;
-      border: 1px solid var(--medium-gray);
-      border-radius: var(--card-radius);
-      font-size: 0.95rem;
-      font-family: inherit;
-      background: var(--white);
-      min-width: 180px;
-    }
-
-    #no-results {
-      text-align: center;
-      padding: 40px;
-      color: var(--text-secondary);
-    }
-
-    #no-results button {
-      background: var(--eg-blue);
-      color: var(--white);
-      border: none;
-      padding: 8px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 12px;
-    }
-
-    #filter-section {
-      margin-top: 12px;
-    }
-
-    #filter-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      font-weight: 600;
-    }
-
-    #filter-count-badge {
-      background: var(--pacific-blue);
-      color: var(--white);
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-weight: 600;
-    }
-
-    .filter-chip-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-
-    .filter-chip {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 16px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      border: 1px solid var(--medium-gray);
-      background: var(--white);
-      color: var(--text-primary);
-      transition: background-color 0.15s ease;
-      user-select: none;
-    }
-
-    .filter-chip:hover {
-      background: var(--light-gray);
-    }
-
-    .filter-chip.active {
-      background: var(--pacific-blue);
-      color: var(--white);
-      border-color: var(--pacific-blue);
-    }
-
-    .filter-chip.active:hover {
-      opacity: 0.9;
-    }
-
-    @media (max-width: 600px) {
-      #search-sort-row {
-        flex-direction: column;
-      }
-
-      #sort-select {
-        width: 100%;
-      }
-    }
-  </style>
+/* ── Transitions ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
+</style>
 </head>
 <body>
-  <header>
-    <h1>Project Dashboard</h1>
-    <span id="repo-count"></span>
-    <button id="token-btn" style="margin-top: 8px; padding: 6px 12px; background: var(--pacific-blue); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">🔒 Add Token for Private Repos</button>
-  </header>
-  <div id="controls" style="display:none;">
-    <div id="search-sort-row">
-      <div id="search-wrapper">
-        <input type="text" id="search-input" placeholder="Search projects by name, description, or topic..." />
-        <button id="search-clear" style="display:none;" aria-label="Clear search">&times;</button>
-      </div>
-      <select id="sort-select">
-        <option value="updated-desc" selected>Updated (newest)</option>
-        <option value="updated-asc">Updated (oldest)</option>
-        <option value="name-asc">Name (A-Z)</option>
+
+<!-- Header -->
+<header class="header">
+  <button class="btn btn-icon sidebar-toggle" title="Toggle sidebar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    Waypoint
+  </div>
+  <div class="header-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="Search tasks...">
+  </div>
+  <div class="header-actions">
+    <div class="view-toggle">
+      <button class="active" data-view="board">Board</button>
+      <button data-view="list">List</button>
+    </div>
+    <button class="btn" id="transcriptBtn" title="Upload meeting transcript">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Transcript
+    </button>
+    <button class="btn btn-primary" id="newTaskBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      New Task
+    </button>
+    <button class="btn btn-icon" id="settingsBtn" title="Settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+    <button class="btn btn-icon" id="themeToggle" title="Toggle theme">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <h3>Status</h3>
+  <div class="filter-group" id="statusFilters">
+    <label><input type="checkbox" value="todo" checked> To Do</label>
+    <label><input type="checkbox" value="inprogress" checked> In Progress</label>
+    <label><input type="checkbox" value="done" checked> Done</label>
+  </div>
+  <h3>Labels</h3>
+  <div class="filter-group" id="labelFilters"></div>
+  <h3>Due Date</h3>
+  <div class="filter-group" id="dueDateFilters">
+    <label><input type="radio" name="due" value="all" checked> All</label>
+    <label><input type="radio" name="due" value="overdue"> Overdue</label>
+    <label><input type="radio" name="due" value="today"> Today</label>
+    <label><input type="radio" name="due" value="week"> This Week</label>
+  </div>
+  <h3>Assignee <a id="manageTeamLink">Manage</a></h3>
+  <div class="filter-group" id="assigneeFilters"></div>
+</aside>
+
+<!-- Board View -->
+<main class="board active" id="boardView">
+  <div class="column" data-status="todo">
+    <div class="column-header"><h2>To Do</h2><span class="column-count">0</span></div>
+    <div class="column-cards" data-status="todo"></div>
+  </div>
+  <div class="column" data-status="inprogress">
+    <div class="column-header"><h2>In Progress</h2><span class="column-count">0</span></div>
+    <div class="column-cards" data-status="inprogress"></div>
+  </div>
+  <div class="column" data-status="done">
+    <div class="column-header"><h2>Done</h2><span class="column-count">0</span></div>
+    <div class="column-cards" data-status="done"></div>
+  </div>
+</main>
+
+<!-- List View -->
+<main class="list-view" id="listView"></main>
+
+<!-- Panel Overlay -->
+<div class="panel-overlay" id="panelOverlay"></div>
+
+<!-- Task Detail Panel -->
+<div class="task-panel" id="taskPanel">
+  <div class="panel-header">
+    <span style="font-weight:600;font-size:14px">Task Details</span>
+    <button class="panel-close" id="panelClose">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+  <div class="panel-footer">
+    <button class="btn btn-danger" id="deleteTaskBtn">Delete Task</button>
+  </div>
+</div>
+
+<!-- Quick Add Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>New Task</h2>
+    <div class="field-group">
+      <label for="newTitle">Title</label>
+      <input type="text" id="newTitle" placeholder="What needs to be done?">
+    </div>
+    <div class="field-group">
+      <label for="newStatus">Status</label>
+      <select id="newStatus">
+        <option value="todo">To Do</option>
+        <option value="inprogress">In Progress</option>
+        <option value="done">Done</option>
       </select>
     </div>
-    <div id="filter-section">
-      <div id="filter-header">
-        <span>Filters</span>
-        <span id="filter-count-badge" style="display:none;"></span>
-      </div>
-      <div id="topic-filters" class="filter-chip-row"></div>
-      <div id="language-filters" class="filter-chip-row"></div>
+    <div class="modal-actions">
+      <button class="btn" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalAdd">Add Task</button>
     </div>
   </div>
-  <div id="no-results" style="display:none;">
-    <p>No projects match your filters</p>
-    <button id="clear-filters-btn">Clear all filters</button>
+</div>
+
+<!-- Transcript Upload Modal -->
+<div class="modal-overlay" id="transcriptOverlay">
+  <div class="transcript-modal">
+    <div class="transcript-modal-header">
+      <h2>Upload Meeting Transcript</h2>
+      <button class="panel-close" id="transcriptClose">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="transcript-modal-body">
+      <div class="transcript-meta">
+        <div class="field-group">
+          <label for="meetingTitle">Meeting Title</label>
+          <input type="text" id="meetingTitle" placeholder="e.g. Weekly Team Sync">
+        </div>
+        <div class="field-group">
+          <label for="meetingDate">Date</label>
+          <input type="date" id="meetingDate">
+        </div>
+      </div>
+      <div class="tab-bar" id="transcriptTabs">
+        <button class="active" data-tab="upload">Upload File</button>
+        <button data-tab="paste">Paste Text</button>
+      </div>
+      <div id="uploadTab">
+        <div class="drop-zone" id="dropZone">
+          <span class="drop-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </span>
+          Drop .txt or .vtt file here, or click to browse
+          <input type="file" id="fileInput" accept=".txt,.vtt">
+        </div>
+      </div>
+      <div id="pasteTab" style="display:none">
+        <textarea class="transcript-textarea" id="transcriptText" placeholder="Paste your Zoom transcript here..."></textarea>
+      </div>
+      <div class="parse-actions">
+        <button class="btn btn-primary" id="parseBtn">Parse Transcript</button>
+        <button class="btn" id="aiParseBtn" title="Parse with Claude AI via Bedrock">Parse with AI</button>
+        <span id="parseStatus" style="font-size:12px;color:var(--text-secondary)"></span>
+      </div>
+      <div class="review-section" id="reviewSection" style="display:none">
+        <div class="review-stats" id="reviewStats"></div>
+        <div class="review-table" id="reviewTable"></div>
+        <div class="review-accept">
+          <button class="btn" id="reviewCancel">Clear</button>
+          <button class="btn btn-primary" id="reviewAccept">Create Tasks</button>
+        </div>
+      </div>
+    </div>
   </div>
-  <div id="status">Loading repositories...</div>
-  <div id="error" style="display:none;"></div>
-  <div id="token-prompt" style="display:none;"></div>
-  <div id="project-grid"></div>
+</div>
 
-  <script>
-    // --- Config ---
-    const CONFIG = {
-      username: 'pkim-1',
-      perPage: 100,
-      apiBase: 'https://api.github.com',
-    };
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="settings-modal">
+    <h2>Settings</h2>
+    <div id="settingsStatus"></div>
+    <div class="field-group">
+      <label for="supabaseUrl">Supabase URL</label>
+      <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co">
+      <small>Your Supabase project URL</small>
+    </div>
+    <div class="field-group">
+      <label for="supabaseKey">Supabase Anon Key</label>
+      <input type="text" id="supabaseKey" placeholder="eyJ...">
+      <small>Public anon key (safe for browser use)</small>
+    </div>
+    <div class="field-group">
+      <label for="awsAccessKey">AWS Access Key ID</label>
+      <input type="text" id="awsAccessKey" placeholder="AKIA...">
+      <small>For Claude via Amazon Bedrock</small>
+    </div>
+    <div class="field-group">
+      <label for="awsSecretKey">AWS Secret Access Key</label>
+      <input type="text" id="awsSecretKey" placeholder="wJalr...">
+      <small>Stored in browser localStorage only</small>
+    </div>
+    <div class="field-group">
+      <label for="awsSessionToken">AWS Session Token (optional)</label>
+      <input type="text" id="awsSessionToken" placeholder="IQoJ... (for temporary credentials only)">
+      <small>Required if using temporary credentials (ASIA keys)</small>
+    </div>
+    <div class="field-group">
+      <label for="awsRegion">AWS Region</label>
+      <input type="text" id="awsRegion" placeholder="us-east-1">
+      <small>Region where Bedrock is enabled</small>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="settingsCancel">Cancel</button>
+      <button class="btn btn-primary" id="settingsSave">Save</button>
+    </div>
+  </div>
+</div>
 
-    // --- Filter State ---
-    window.currentSearch = '';
-    window.activeTopics = [];
-    window.activeLanguages = [];
+<!-- Team Management Modal -->
+<div class="modal-overlay" id="teamOverlay">
+  <div class="team-modal">
+    <h2>Team Members</h2>
+    <div class="team-list" id="teamList"></div>
+    <div class="add-member-row">
+      <input type="text" id="newMemberName" placeholder="Add team member...">
+      <button class="btn btn-primary" id="addMemberBtn">Add</button>
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn" id="teamClose">Close</button>
+    </div>
+  </div>
+</div>
 
-    // --- Token Management ---
-    function getToken() {
-      return localStorage.getItem('github_token') || null;
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── Constants ──
+const LABELS = {
+  bug:      { name: 'Bug',      color: '#ff3b30' },
+  feature:  { name: 'Feature',  color: '#007aff' },
+  urgent:   { name: 'Urgent',   color: '#ff9500' },
+  learning: { name: 'Learning', color: '#34c759' },
+  setup:    { name: 'Setup',    color: '#af52de' },
+  config:   { name: 'Config',   color: '#5ac8fa' },
+  action:   { name: 'Action',   color: '#ff6b35' },
+  decision: { name: 'Decision', color: '#00a878' },
+};
+const STORAGE_KEY = 'waypoint_tasks';
+const THEME_KEY = 'waypoint_theme';
+const MEMBERS_KEY = 'waypoint_members';
+const SUPABASE_URL_KEY = 'waypoint_supabase_url';
+const SUPABASE_ANON_KEY_STORE = 'waypoint_supabase_anon';
+const AWS_ACCESS_KEY_STORE = 'waypoint_aws_access_key';
+const AWS_SECRET_KEY_STORE = 'waypoint_aws_secret_key';
+const AWS_SESSION_TOKEN_STORE = 'waypoint_aws_session_token';
+const AWS_REGION_STORE = 'waypoint_aws_region';
+
+const AVATAR_COLORS = ['#ff6b35','#007aff','#af52de','#ff3b30','#34c759','#5ac8fa','#ff9500','#00a878','#000099','#4248ED'];
+
+// ── Supabase Client ──
+let sb = null;
+function initSupabase() {
+  const url = localStorage.getItem(SUPABASE_URL_KEY);
+  const anon = localStorage.getItem(SUPABASE_ANON_KEY_STORE);
+  if (url && anon && window.supabase) {
+    try {
+      sb = window.supabase.createClient(url, anon);
+      return true;
+    } catch { sb = null; }
+  }
+  return false;
+}
+
+// ── State ──
+let tasks = [];
+let teamMembers = [];
+let currentTaskId = null;
+let currentView = 'board';
+let _parsedItems = [];
+
+// ── Sample Data ──
+function getSampleTasks() {
+  return [
+    {
+      id: crypto.randomUUID(), title: 'Install Claude Code', status: 'done',
+      description: 'Download and install the Claude Code CLI tool to enable AI-assisted development directly from the terminal.',
+      labels: ['setup', 'learning'], dueDate: '2026-04-20',
+      checklist: [{ text: 'Download CLI', done: true }, { text: 'Run installer', done: true }, { text: 'Verify installation', done: true }],
+      createdAt: '2026-04-18T10:00:00Z', completedAt: '2026-04-20T14:30:00Z',
+      assigneeName: null, assigneeId: null, meetingId: null, meetingTitle: null, itemType: null
+    },
+    {
+      id: crypto.randomUUID(), title: 'Create a Project Folder', status: 'done',
+      description: 'Set up the base project directory with proper structure for the Claude Code training exercises.',
+      labels: ['setup'], dueDate: '2026-04-21',
+      checklist: [{ text: 'Choose location', done: true }, { text: 'Create folder', done: true }, { text: 'Initialize git', done: true }],
+      createdAt: '2026-04-18T10:00:00Z', completedAt: '2026-04-21T11:00:00Z',
+      assigneeName: null, assigneeId: null, meetingId: null, meetingTitle: null, itemType: null
+    },
+    {
+      id: crypto.randomUUID(), title: 'Open Claude Code', status: 'done',
+      description: 'Launch Claude Code in the terminal and verify it connects properly. Explore the basic commands and interface.',
+      labels: ['learning'], dueDate: '2026-04-22',
+      checklist: [{ text: 'Launch terminal', done: true }, { text: 'Run claude command', done: true }],
+      createdAt: '2026-04-18T10:00:00Z', completedAt: '2026-04-22T09:15:00Z',
+      assigneeName: null, assigneeId: null, meetingId: null, meetingTitle: null, itemType: null
+    },
+    {
+      id: crypto.randomUUID(), title: 'Vibe-Code a Simple Web App', status: 'inprogress',
+      description: 'Build a simple web app using Claude Code to experience the vibe-coding workflow.',
+      labels: ['feature'], dueDate: '2026-04-24',
+      checklist: [{ text: 'Choose app idea', done: true }, { text: 'Write prompt', done: true }, { text: 'Generate code', done: false }, { text: 'Test & iterate', done: false }],
+      createdAt: '2026-04-22T10:00:00Z', completedAt: null,
+      assigneeName: null, assigneeId: null, meetingId: null, meetingTitle: null, itemType: null
+    },
+    {
+      id: crypto.randomUUID(), title: 'Set-up Project Folder', status: 'todo',
+      description: 'Configure the project folder with all necessary files and structure for a production-ready setup.',
+      labels: ['setup', 'config'], dueDate: '2026-04-25',
+      checklist: [{ text: 'Create directory structure', done: false }, { text: 'Add .gitignore', done: false }, { text: 'Initialize npm', done: false }],
+      createdAt: '2026-04-22T10:00:00Z', completedAt: null,
+      assigneeName: null, assigneeId: null, meetingId: null, meetingTitle: null, itemType: null
+    },
+    {
+      id: crypto.randomUUID(), title: 'Connect to MCPs', status: 'todo',
+      description: 'Configure Model Context Protocol servers to extend Claude Code with external tools.',
+      labels: ['config'], dueDate: '2026-04-26',
+      checklist: [{ text: 'Configure MCP servers', done: false }, { text: 'Test connections', done: false }],
+      createdAt: '2026-04-22T10:00:00Z', completedAt: null,
+      assigneeName: null, assigneeId: null, meetingId: null, meetingTitle: null, itemType: null
+    },
+    {
+      id: crypto.randomUUID(), title: 'Install Skills', status: 'todo',
+      description: 'Browse and install Claude Code skills to add specialized capabilities.',
+      labels: ['config', 'learning'], dueDate: '2026-04-27',
+      checklist: [{ text: 'Browse available skills', done: false }, { text: 'Install selected skills', done: false }],
+      createdAt: '2026-04-22T10:00:00Z', completedAt: null,
+      assigneeName: null, assigneeId: null, meetingId: null, meetingTitle: null, itemType: null
+    },
+  ];
+}
+
+// ── Persistence Layer ──
+function normalizeTask(t) {
+  return {
+    id: t.id,
+    title: t.title || '',
+    description: t.description || '',
+    status: t.status || 'todo',
+    labels: t.labels || [],
+    dueDate: t.dueDate || t.due_date || '',
+    checklist: t.checklist || [],
+    assigneeName: t.assigneeName || t.assignee_name || null,
+    assigneeId: t.assigneeId || t.assignee_id || null,
+    meetingId: t.meetingId || t.meeting_id || null,
+    meetingTitle: t.meetingTitle || t.meeting_title || null,
+    itemType: t.itemType || t.item_type || null,
+    createdAt: t.createdAt || t.created_at || new Date().toISOString(),
+    completedAt: t.completedAt || t.completed_at || null,
+    sortOrder: t.sortOrder || t.sort_order || 0
+  };
+}
+
+function taskToDbRow(t) {
+  return {
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    status: t.status,
+    labels: t.labels,
+    due_date: t.dueDate || null,
+    checklist: t.checklist,
+    assignee_name: t.assigneeName || null,
+    assignee_id: t.assigneeId || null,
+    meeting_id: t.meetingId || null,
+    meeting_title: t.meetingTitle || null,
+    item_type: t.itemType || null,
+    created_at: t.createdAt,
+    completed_at: t.completedAt || null,
+    sort_order: t.sortOrder || 0
+  };
+}
+
+async function loadTasks() {
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('tasks').select('*').order('created_at', { ascending: false });
+      if (!error && data) { tasks = data.map(normalizeTask); return; }
+    } catch {}
+  }
+  // One-time clear of legacy sample tasks
+  const needsClear = localStorage.getItem('waypoint_cleared_v2');
+  if (!needsClear) {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.setItem('waypoint_cleared_v2', '1');
+  }
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) { tasks = JSON.parse(stored).map(normalizeTask); }
+  else { tasks = []; saveTasksLocal(); }
+}
+
+function saveTasksLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+
+async function saveTask(task) {
+  const idx = tasks.findIndex(t => t.id === task.id);
+  if (idx >= 0) tasks[idx] = task;
+  if (sb) {
+    try { await sb.from('tasks').upsert(taskToDbRow(task)); return; } catch {}
+  }
+  saveTasksLocal();
+}
+
+async function saveAllTasks() {
+  if (sb) {
+    try {
+      const rows = tasks.map(taskToDbRow);
+      await sb.from('tasks').upsert(rows);
+      return;
+    } catch {}
+  }
+  saveTasksLocal();
+}
+
+async function deleteTaskFromDb(id) {
+  if (sb) {
+    try { await sb.from('tasks').delete().eq('id', id); return; } catch {}
+  }
+  saveTasksLocal();
+}
+
+async function loadTeamMembers() {
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('team_members').select('*').order('name');
+      if (!error && data) { teamMembers = data; return; }
+    } catch {}
+  }
+  const stored = localStorage.getItem(MEMBERS_KEY);
+  teamMembers = stored ? JSON.parse(stored) : [];
+}
+
+function saveMembersLocal() { localStorage.setItem(MEMBERS_KEY, JSON.stringify(teamMembers)); }
+
+async function addTeamMember(name, source = 'manual') {
+  if (!name.trim()) return null;
+  const existing = teamMembers.find(m => m.name.toLowerCase() === name.trim().toLowerCase());
+  if (existing) return existing;
+  const member = {
+    id: crypto.randomUUID(),
+    name: name.trim(),
+    email: null,
+    avatar_color: AVATAR_COLORS[teamMembers.length % AVATAR_COLORS.length],
+    source,
+    created_at: new Date().toISOString()
+  };
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('team_members').insert(member).select().single();
+      if (!error && data) { teamMembers.push(data); renderAssigneeFilters(); return data; }
+    } catch {}
+  }
+  teamMembers.push(member);
+  saveMembersLocal();
+  renderAssigneeFilters();
+  return member;
+}
+
+async function removeTeamMember(id) {
+  if (sb) {
+    try { await sb.from('team_members').delete().eq('id', id); } catch {}
+  }
+  teamMembers = teamMembers.filter(m => m.id !== id);
+  saveMembersLocal();
+  tasks.forEach(t => { if (t.assigneeId === id) { t.assigneeName = null; t.assigneeId = null; } });
+  await saveAllTasks();
+  renderAssigneeFilters();
+  render();
+}
+
+async function saveMeeting(title, date, participants, transcript, source = 'upload') {
+  const meeting = {
+    id: crypto.randomUUID(),
+    title, date, participants, transcript, source,
+    created_at: new Date().toISOString()
+  };
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('meetings').insert(meeting).select().single();
+      if (!error && data) return data;
+    } catch {}
+  }
+  return meeting;
+}
+
+async function migrateToSupabase() {
+  if (!sb) return;
+  const localTasks = localStorage.getItem(STORAGE_KEY);
+  if (!localTasks) return;
+  const parsed = JSON.parse(localTasks);
+  if (parsed.length === 0) return;
+  try {
+    const rows = parsed.map(t => taskToDbRow(normalizeTask(t)));
+    const { error } = await sb.from('tasks').upsert(rows, { onConflict: 'id' });
+    if (!error) {
+      localStorage.removeItem(STORAGE_KEY);
+      showToast('Migrated ' + rows.length + ' tasks to Supabase');
     }
-
-    function saveToken(token) {
-      localStorage.setItem('github_token', token);
-    }
-
-    function clearToken() {
-      localStorage.removeItem('github_token');
-    }
-
-    // --- Header Builder ---
-    function getHeaders() {
-      const headers = { 'Accept': 'application/vnd.github+json' };
-      const token = getToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+  } catch {}
+  const localMembers = localStorage.getItem(MEMBERS_KEY);
+  if (localMembers) {
+    try {
+      const members = JSON.parse(localMembers);
+      if (members.length > 0) {
+        await sb.from('team_members').upsert(members, { onConflict: 'id' });
+        localStorage.removeItem(MEMBERS_KEY);
       }
-      return headers;
-    }
+    } catch {}
+  }
+}
 
-    // --- Pagination-aware Fetch ---
-    async function fetchAllRepos() {
-      let allRepos = [];
-      let page = 1;
+// ── Theme ──
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem(THEME_KEY, next);
+  updateThemeIcon();
+}
+function updateThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.getElementById('themeToggle').innerHTML = isDark
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+}
 
-      while (true) {
-        const token = getToken();
-        const url = token
-          ? `${CONFIG.apiBase}/user/repos?per_page=${CONFIG.perPage}&page=${page}&sort=updated&affiliation=owner`
-          : `${CONFIG.apiBase}/users/${CONFIG.username}/repos?per_page=${CONFIG.perPage}&page=${page}&sort=updated&type=owner`;
-        const response = await fetch(url, { headers: getHeaders() });
+// ── Toast ──
+function showToast(msg, type = '') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast' + (type ? ' ' + type : '');
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
 
-        if (response.status === 403) {
-          const remaining = response.headers.get('x-ratelimit-remaining');
-          if (remaining === '0') {
-            const err = new Error('RATE_LIMITED');
-            err.resetTime = response.headers.get('x-ratelimit-reset');
-            throw err;
-          }
-        }
-
-        if (response.status === 401) {
-          throw new Error('AUTH_FAILED');
-        }
-
-        if (!response.ok) {
-          throw new Error(`API_ERROR: ${response.status}`);
-        }
-
-        const repos = await response.json();
-        allRepos.push(...repos);
-
-        if (repos.length < CONFIG.perPage) break;
-        page++;
-      }
-
-      return allRepos;
-    }
-
-    // --- Error Display ---
-    function showError(message, showRetry, showTokenInput) {
-      const statusEl = document.getElementById('status');
-      const errorEl = document.getElementById('error');
-      statusEl.style.display = 'none';
-      errorEl.style.display = '';
-
-      errorEl.innerHTML = '';
-      const container = document.createElement('div');
-
-      const msgP = document.createElement('p');
-      msgP.textContent = message;
-      container.appendChild(msgP);
-
-      if (showRetry) {
-        const retryBtn = document.createElement('button');
-        retryBtn.textContent = 'Retry';
-        retryBtn.addEventListener('click', () => initDashboard());
-        container.appendChild(retryBtn);
-      }
-
-      if (showTokenInput) {
-        const tokenBtn = document.createElement('button');
-        tokenBtn.textContent = 'Add GitHub Token';
-        tokenBtn.addEventListener('click', () => showTokenPrompt());
-        container.appendChild(tokenBtn);
-      }
-
-      errorEl.appendChild(container);
-    }
-
-    // --- Token Prompt ---
-    function showTokenPrompt() {
-      const errorEl = document.getElementById('error');
-      const promptEl = document.getElementById('token-prompt');
-      errorEl.style.display = 'none';
-      promptEl.style.display = '';
-
-      promptEl.innerHTML = '';
-
-      const desc = document.createElement('p');
-      desc.textContent = 'Enter a GitHub Personal Access Token for higher rate limits (5,000 requests/hour).';
-      promptEl.appendChild(desc);
-
-      const hint = document.createElement('p');
-      hint.textContent = 'Create one at github.com/settings/tokens with public_repo scope.';
-      promptEl.appendChild(hint);
-
-      const input = document.createElement('input');
-      input.type = 'password';
-      input.id = 'token-input';
-      input.placeholder = 'ghp_xxxxxxxxxxxx';
-      promptEl.appendChild(input);
-
-      const saveBtn = document.createElement('button');
-      saveBtn.textContent = 'Save Token';
-      saveBtn.addEventListener('click', () => {
-        const value = input.value.trim();
-        if (value) {
-          saveToken(value);
-          promptEl.style.display = 'none';
-          initDashboard();
-        }
-      });
-      promptEl.appendChild(saveBtn);
-
-      const skipSpan = document.createElement('span');
-      skipSpan.className = 'skip-link';
-      skipSpan.textContent = 'Skip (continue without token)';
-      skipSpan.style.display = 'block';
-      skipSpan.style.marginTop = '12px';
-      skipSpan.addEventListener('click', () => {
-        promptEl.style.display = 'none';
-        initDashboard();
-      });
-      promptEl.appendChild(skipSpan);
-    }
-
-    // --- Type Detection ---
-    const TYPE_KEYWORDS = {
-      analysis: ['analysis', 'data-science', 'jupyter', 'research', 'statistics', 'analytics'],
-      tool: ['tool', 'cli', 'library', 'framework', 'utility', 'automation', 'dashboard'],
-      visualization: ['visualization', 'dashboard', 'chart', 'graph', 'plot', 'dataviz'],
-    };
-
-    function detectType(topics) {
-      if (!topics || topics.length === 0) return null;
-      for (const topic of topics) {
-        const lower = topic.toLowerCase();
-        for (const [type, keywords] of Object.entries(TYPE_KEYWORDS)) {
-          if (keywords.some(kw => lower.includes(kw))) {
-            return type;
-          }
-        }
-      }
-      return null;
-    }
-
-    // --- Card Rendering ---
-    function renderCard(repo) {
-      const card = document.createElement('article');
-      card.className = 'project-card card';
-      const cardUrl = (repo.homepage && repo.homepage.trim())
-        ? repo.homepage
-        : `https://${CONFIG.username}.github.io/${repo.name === `${CONFIG.username}.github.io` ? '' : repo.name + '/'}`;
-      card.addEventListener('click', () => {
-        window.open(cardUrl, '_blank', 'noopener,noreferrer');
-      });
-      card.setAttribute('role', 'link');
-      card.setAttribute('tabindex', '0');
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          window.open(cardUrl, '_blank', 'noopener,noreferrer');
-        }
-      });
-
-      const type = detectType(repo.topics);
-      if (type) {
-        const badge = document.createElement('span');
-        badge.className = `type-badge ${type}`;
-        badge.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-        card.appendChild(badge);
-      }
-
-      const name = document.createElement('h3');
-      name.className = 'card-name';
-      if (type) {
-        name.style.paddingTop = '24px';
-      }
-      name.textContent = repo.name;
-      card.appendChild(name);
-
-      if (repo.description) {
-        const desc = document.createElement('p');
-        desc.className = 'card-description';
-        desc.textContent = repo.description;
-        card.appendChild(desc);
-      }
-
-      const meta = document.createElement('div');
-      meta.className = 'card-meta';
-
-      if (repo.topics && repo.topics.length > 0) {
-        const topicsDiv = document.createElement('div');
-        topicsDiv.className = 'card-topics';
-        repo.topics.forEach(topic => {
-          const chip = document.createElement('span');
-          chip.className = 'topic-chip';
-          chip.textContent = topic;
-          topicsDiv.appendChild(chip);
-        });
-        meta.appendChild(topicsDiv);
-      }
-
-      if (repo.language) {
-        const lang = document.createElement('span');
-        lang.className = 'language-badge';
-        lang.textContent = repo.language;
-        meta.appendChild(lang);
-      }
-
-      card.appendChild(meta);
-      return card;
-    }
-
-    function renderGrid(repos) {
-      const grid = document.getElementById('project-grid');
-      grid.innerHTML = '';
-      const fragment = document.createDocumentFragment();
-      repos.forEach(repo => {
-        fragment.appendChild(renderCard(repo));
-      });
-      grid.appendChild(fragment);
-    }
-
-    // --- Filter Chips ---
-    function renderFilterChips() {
-      const topicContainer = document.getElementById('topic-filters');
-      const langContainer = document.getElementById('language-filters');
-      const repos = window.allRepos || [];
-
-      const topics = [...new Set(repos.flatMap(r => r.topics || []))].sort();
-      const languages = [...new Set(repos.map(r => r.language).filter(Boolean))].sort();
-
-      const topicFrag = document.createDocumentFragment();
-      topics.forEach(topic => {
-        const chip = document.createElement('span');
-        chip.className = 'filter-chip';
-        chip.textContent = topic;
-        chip.setAttribute('data-topic', topic);
-        chip.addEventListener('click', () => {
-          const idx = window.activeTopics.indexOf(topic);
-          if (idx === -1) {
-            window.activeTopics.push(topic);
-          } else {
-            window.activeTopics.splice(idx, 1);
-          }
-          chip.classList.toggle('active');
-          updateFilterBadge();
-          applyFilters();
-        });
-        topicFrag.appendChild(chip);
-      });
-      topicContainer.innerHTML = '';
-      topicContainer.appendChild(topicFrag);
-      topicContainer.style.display = topics.length === 0 ? 'none' : '';
-
-      const langFrag = document.createDocumentFragment();
-      languages.forEach(lang => {
-        const chip = document.createElement('span');
-        chip.className = 'filter-chip';
-        chip.textContent = lang;
-        chip.setAttribute('data-language', lang);
-        chip.addEventListener('click', () => {
-          const idx = window.activeLanguages.indexOf(lang);
-          if (idx === -1) {
-            window.activeLanguages.push(lang);
-          } else {
-            window.activeLanguages.splice(idx, 1);
-          }
-          chip.classList.toggle('active');
-          updateFilterBadge();
-          applyFilters();
-        });
-        langFrag.appendChild(chip);
-      });
-      langContainer.innerHTML = '';
-      langContainer.appendChild(langFrag);
-      langContainer.style.display = languages.length === 0 ? 'none' : '';
-    }
-
-    function updateFilterBadge() {
-      const badge = document.getElementById('filter-count-badge');
-      const count = window.activeTopics.length + window.activeLanguages.length;
-      if (count > 0) {
-        badge.textContent = count;
-        badge.style.display = '';
+// ── Filters ──
+function getFilters() {
+  const statuses = [...document.querySelectorAll('#statusFilters input:checked')].map(i => i.value);
+  const labels = [...document.querySelectorAll('#labelFilters input:checked')].map(i => i.value);
+  const assignees = [...document.querySelectorAll('#assigneeFilters input:checked')].map(i => i.value);
+  const due = document.querySelector('#dueDateFilters input:checked')?.value || 'all';
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  return { statuses, labels, assignees, due, search };
+}
+function filterTasks() {
+  const f = getFilters();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7);
+  return tasks.filter(t => {
+    if (!f.statuses.includes(t.status)) return false;
+    if (f.labels.length > 0 && !t.labels.some(l => f.labels.includes(l))) return false;
+    if (f.assignees.length > 0) {
+      if (f.assignees.includes('__unassigned__')) {
+        if (t.assigneeName && !f.assignees.includes(t.assigneeName)) return false;
       } else {
-        badge.style.display = 'none';
+        if (!t.assigneeName || !f.assignees.includes(t.assigneeName)) return false;
+      }
+    }
+    if (f.due !== 'all' && t.dueDate) {
+      const d = new Date(t.dueDate + 'T00:00:00');
+      if (f.due === 'overdue' && d >= today) return false;
+      if (f.due === 'today' && (d < today || d >= new Date(today.getTime() + 86400000))) return false;
+      if (f.due === 'week' && (d < today || d >= weekEnd)) return false;
+    }
+    if (f.search && !t.title.toLowerCase().includes(f.search) && !(t.description || '').toLowerCase().includes(f.search)) return false;
+    return true;
+  });
+}
+
+// ── Helpers ──
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function svgCal() {
+  return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+}
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+function getAvatarColor(name) {
+  const member = teamMembers.find(m => m.name === name);
+  if (member?.avatar_color) return member.avatar_color;
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+// ── Rendering: Board ──
+function renderBoard() {
+  const filtered = filterTasks();
+  ['todo', 'inprogress', 'done'].forEach(status => {
+    const cards = document.querySelector(`.column-cards[data-status="${status}"]`);
+    const count = document.querySelector(`.column[data-status="${status}"] .column-count`);
+    const statusTasks = filtered.filter(t => t.status === status);
+    count.textContent = statusTasks.length;
+    cards.innerHTML = '';
+    statusTasks.forEach(t => cards.appendChild(createCard(t)));
+  });
+}
+
+function createCard(task) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.draggable = true;
+  card.dataset.id = task.id;
+  const done = task.checklist.filter(c => c.done).length;
+  const total = task.checklist.length;
+  const pct = total > 0 ? (done / total * 100) : 0;
+  const isOverdue = task.dueDate && new Date(task.dueDate + 'T00:00:00') < new Date() && task.status !== 'done';
+  const assigneeHtml = task.assigneeName
+    ? `<span class="card-assignee"><span class="avatar-chip" style="background:${getAvatarColor(task.assigneeName)}">${esc(getInitials(task.assigneeName))}</span>${esc(task.assigneeName)}</span>`
+    : '';
+  const meetingHtml = task.meetingTitle
+    ? `<span class="meeting-badge" title="From: ${esc(task.meetingTitle)}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${esc(task.meetingTitle)}</span>`
+    : '';
+  card.innerHTML = `
+    <div class="card-labels">${task.labels.map(l => `<span class="label-chip" style="background:${LABELS[l]?.color || '#888'}">${LABELS[l]?.name || l}</span>`).join('')}</div>
+    <div class="card-title">${esc(task.title)}</div>
+    ${task.description ? `<div class="card-desc">${esc(task.description)}</div>` : ''}
+    <div class="card-meta">
+      ${assigneeHtml}
+      ${meetingHtml}
+      ${task.dueDate ? `<span class="card-due ${isOverdue ? 'overdue' : ''}">${svgCal()} ${formatDate(task.dueDate)}</span>` : ''}
+      ${total > 0 ? `<span class="card-progress"><span class="progress-bar"><span class="progress-fill ${pct === 100 ? 'complete' : ''}" style="width:${pct}%"></span></span>${done}/${total}</span>` : ''}
+    </div>`;
+  card.addEventListener('click', () => openPanel(task.id));
+  card.addEventListener('dragstart', onDragStart);
+  card.addEventListener('dragend', onDragEnd);
+  return card;
+}
+
+// ── Rendering: List ──
+function renderList() {
+  const filtered = filterTasks();
+  const lv = document.getElementById('listView');
+  lv.innerHTML = '';
+  ['todo', 'inprogress', 'done'].forEach(status => {
+    const statusTasks = filtered.filter(t => t.status === status);
+    if (statusTasks.length === 0) return;
+    const group = document.createElement('div');
+    group.className = 'list-group';
+    const label = { todo: 'To Do', inprogress: 'In Progress', done: 'Done' }[status];
+    group.innerHTML = `<div class="list-group-header">${label} (${statusTasks.length})</div>`;
+    statusTasks.forEach(t => {
+      const done = t.checklist.filter(c => c.done).length;
+      const total = t.checklist.length;
+      const pct = total > 0 ? (done / total * 100) : 0;
+      const isOverdue = t.dueDate && new Date(t.dueDate + 'T00:00:00') < new Date() && t.status !== 'done';
+      const item = document.createElement('div');
+      item.className = 'list-item';
+      item.draggable = true;
+      item.dataset.id = t.id;
+      const assigneeHtml = t.assigneeName
+        ? `<span class="avatar-chip" style="background:${getAvatarColor(t.assigneeName)};width:20px;height:20px;font-size:8px" title="${esc(t.assigneeName)}">${esc(getInitials(t.assigneeName))}</span>`
+        : '';
+      item.innerHTML = `
+        ${assigneeHtml}
+        <span class="list-item-title ${t.status === 'done' ? 'done-task' : ''}">${esc(t.title)}</span>
+        <div class="card-labels">${t.labels.map(l => `<span class="label-chip" style="background:${LABELS[l]?.color || '#888'}">${LABELS[l]?.name || l}</span>`).join('')}</div>
+        ${t.dueDate ? `<span class="card-due ${isOverdue ? 'overdue' : ''}">${formatDate(t.dueDate)}</span>` : ''}
+        ${total > 0 ? `<span class="card-progress"><span class="progress-bar"><span class="progress-fill ${pct === 100 ? 'complete' : ''}" style="width:${pct}%"></span></span>${done}/${total}</span>` : ''}`;
+      item.addEventListener('click', () => openPanel(t.id));
+      item.addEventListener('dragstart', onDragStart);
+      item.addEventListener('dragend', onDragEnd);
+      group.appendChild(item);
+    });
+    lv.appendChild(group);
+  });
+}
+
+// ── Rendering: Sidebar Labels & Assignees ──
+function renderLabelFilters() {
+  const el = document.getElementById('labelFilters');
+  el.innerHTML = Object.entries(LABELS).map(([k, v]) =>
+    `<label><input type="checkbox" value="${k}"><span class="label-dot" style="background:${v.color}"></span> ${v.name}</label>`
+  ).join('');
+}
+
+function renderAssigneeFilters() {
+  const el = document.getElementById('assigneeFilters');
+  let html = '<label><input type="checkbox" value="__unassigned__"> Unassigned</label>';
+  teamMembers.forEach(m => {
+    html += `<label><input type="checkbox" value="${esc(m.name)}"><span class="avatar-chip" style="background:${m.avatar_color || '#888'};width:16px;height:16px;font-size:7px">${esc(getInitials(m.name))}</span> ${esc(m.name)}</label>`;
+  });
+  el.innerHTML = html;
+}
+
+// ── Task Panel ──
+function openPanel(id) {
+  currentTaskId = id;
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  const body = document.getElementById('panelBody');
+  const done = task.checklist.filter(c => c.done).length;
+  const total = task.checklist.length;
+  body.innerHTML = `
+    <div class="field-group">
+      <label>Title</label>
+      <input type="text" id="panelTitle" value="${esc(task.title)}">
+    </div>
+    <div class="field-group">
+      <label>Status</label>
+      <select id="panelStatus">
+        <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>To Do</option>
+        <option value="inprogress" ${task.status === 'inprogress' ? 'selected' : ''}>In Progress</option>
+        <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Assignee</label>
+      <select id="panelAssignee">
+        <option value="">Unassigned</option>
+        ${teamMembers.map(m => `<option value="${esc(m.name)}" ${task.assigneeName === m.name ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Labels</label>
+      <div class="label-toggles">
+        ${Object.entries(LABELS).map(([k, v]) =>
+          `<span class="label-toggle ${task.labels.includes(k) ? 'active' : ''}" data-label="${k}" style="background:${v.color}">${v.name}</span>`
+        ).join('')}
+      </div>
+    </div>
+    <div class="field-group">
+      <label>Due Date</label>
+      <input type="date" id="panelDue" value="${task.dueDate || ''}">
+    </div>
+    <div class="field-group">
+      <label>Description</label>
+      <textarea id="panelDesc">${esc(task.description)}</textarea>
+    </div>
+    ${task.meetingTitle ? `<div class="field-group"><label>Meeting Source</label><div class="meeting-badge" style="display:inline-flex">${esc(task.meetingTitle)}</div></div>` : ''}
+    <div class="field-group">
+      <label>Checklist ${total > 0 ? `(${done}/${total})` : ''}</label>
+      <div class="checklist-items" id="panelChecklist">
+        ${task.checklist.map((c, i) => `
+          <div class="checklist-item">
+            <input type="checkbox" data-idx="${i}" ${c.done ? 'checked' : ''}>
+            <span class="${c.done ? 'checked' : ''}">${esc(c.text)}</span>
+            <button data-idx="${i}" title="Remove">&times;</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="add-checklist">
+        <input type="text" id="newCheckItem" placeholder="Add item...">
+        <button class="btn" id="addCheckBtn">Add</button>
+      </div>
+    </div>`;
+
+  // Event listeners
+  body.querySelector('#panelTitle').addEventListener('input', e => { task.title = e.target.value; saveTask(task); render(); });
+  body.querySelector('#panelStatus').addEventListener('change', e => {
+    task.status = e.target.value;
+    task.completedAt = task.status === 'done' ? new Date().toISOString() : null;
+    saveTask(task); render();
+  });
+  body.querySelector('#panelAssignee').addEventListener('change', e => {
+    task.assigneeName = e.target.value || null;
+    const member = teamMembers.find(m => m.name === e.target.value);
+    task.assigneeId = member?.id || null;
+    saveTask(task); render();
+  });
+  body.querySelector('#panelDue').addEventListener('change', e => { task.dueDate = e.target.value; saveTask(task); render(); });
+  body.querySelector('#panelDesc').addEventListener('input', e => { task.description = e.target.value; saveTask(task); render(); });
+  body.querySelectorAll('.label-toggle').forEach(el => {
+    el.addEventListener('click', () => {
+      const l = el.dataset.label;
+      if (task.labels.includes(l)) task.labels = task.labels.filter(x => x !== l);
+      else task.labels.push(l);
+      el.classList.toggle('active');
+      saveTask(task); render();
+    });
+  });
+  body.querySelectorAll('.checklist-item input').forEach(cb => {
+    cb.addEventListener('change', () => {
+      task.checklist[cb.dataset.idx].done = cb.checked;
+      saveTask(task); openPanel(id); render();
+    });
+  });
+  body.querySelectorAll('.checklist-item button').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      task.checklist.splice(btn.dataset.idx, 1);
+      saveTask(task); openPanel(id); render();
+    });
+  });
+  const addCheck = () => {
+    const inp = body.querySelector('#newCheckItem');
+    if (inp.value.trim()) {
+      task.checklist.push({ text: inp.value.trim(), done: false });
+      saveTask(task); openPanel(id); render();
+    }
+  };
+  body.querySelector('#addCheckBtn').addEventListener('click', addCheck);
+  body.querySelector('#newCheckItem').addEventListener('keydown', e => { if (e.key === 'Enter') addCheck(); });
+
+  document.getElementById('taskPanel').classList.add('open');
+  document.getElementById('panelOverlay').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('taskPanel').classList.remove('open');
+  document.getElementById('panelOverlay').classList.remove('open');
+  currentTaskId = null;
+}
+
+// ── Drag & Drop ──
+let dragId = null;
+function onDragStart(e) {
+  dragId = e.target.dataset.id || e.target.closest('[data-id]')?.dataset.id;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragId = null;
+}
+document.querySelectorAll('.column-cards').forEach(col => {
+  col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over'); });
+  col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+  col.addEventListener('drop', e => {
+    e.preventDefault();
+    col.classList.remove('drag-over');
+    if (!dragId) return;
+    const task = tasks.find(t => t.id === dragId);
+    if (task) {
+      task.status = col.dataset.status;
+      task.completedAt = task.status === 'done' ? new Date().toISOString() : null;
+      saveTask(task); render();
+    }
+  });
+});
+
+// ── Quick Add ──
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('newTitle').value = '';
+  document.getElementById('newStatus').value = 'todo';
+  setTimeout(() => document.getElementById('newTitle').focus(), 100);
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+async function addTask() {
+  const title = document.getElementById('newTitle').value.trim();
+  if (!title) return;
+  const task = normalizeTask({
+    id: crypto.randomUUID(), title, status: document.getElementById('newStatus').value,
+    description: '', labels: [], dueDate: '', checklist: [],
+    createdAt: new Date().toISOString(), completedAt: null
+  });
+  tasks.unshift(task);
+  await saveTask(task);
+  closeModal(); render();
+  openPanel(task.id);
+}
+
+// ── Delete ──
+async function deleteTask() {
+  if (!currentTaskId) return;
+  if (!confirm('Delete this task?')) return;
+  const id = currentTaskId;
+  tasks = tasks.filter(t => t.id !== id);
+  await deleteTaskFromDb(id);
+  closePanel(); render();
+}
+
+// ── View Toggle ──
+function setView(view) {
+  currentView = view;
+  document.querySelectorAll('.view-toggle button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.getElementById('boardView').classList.toggle('active', view === 'board');
+  document.getElementById('listView').classList.toggle('active', view === 'list');
+  render();
+}
+
+// ── Render All ──
+function render() {
+  if (currentView === 'board') renderBoard();
+  else renderList();
+}
+
+// ── Transcript Parsing (Heuristic) — ported from meeting-tracker.html ──
+function parseTranscriptHeuristic(rawText) {
+  const lines = rawText.split('\n');
+  const speakers = new Set();
+  const entries = [];
+  let currentSpeaker = '';
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Skip WebVTT metadata
+    if (trimmed === 'WEBVTT') continue;
+    if (/^\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}$/.test(trimmed)) continue;
+
+    // Format 1: Zoom closed-caption — [Speaker Name] HH:MM:SS
+    const ccMatch = trimmed.match(/^\[(.+?)\]\s+\d{1,2}:\d{2}(:\d{2})?$/);
+    if (ccMatch) {
+      currentSpeaker = ccMatch[1].trim();
+      speakers.add(currentSpeaker);
+      continue;
+    }
+
+    // Format 2: WebVTT inline — Speaker Name: content text
+    const vttMatch = trimmed.match(/^([A-Z][A-Za-z\s.'-]+?):\s+(.+)$/);
+    if (vttMatch) {
+      const name = vttMatch[1].trim();
+      const skipLabels = /^(action item|todo|follow up|next step|note|update|decision|summary|agenda|context)$/i;
+      if (!skipLabels.test(name)) {
+        currentSpeaker = name;
+        speakers.add(currentSpeaker);
+        entries.push({ speaker: currentSpeaker, text: vttMatch[2].trim() });
+        continue;
       }
     }
 
-    function highlightActiveChips() {
-      document.querySelectorAll('.filter-chip').forEach(chip => {
-        const topic = chip.getAttribute('data-topic');
-        const lang = chip.getAttribute('data-language');
-        if (topic) {
-          chip.classList.toggle('active', window.activeTopics.includes(topic));
-        } else if (lang) {
-          chip.classList.toggle('active', window.activeLanguages.includes(lang));
+    // Format 3: "HH:MM:SS Speaker Name:" with colon at end
+    const speakerMatch = trimmed.match(/^(?:\d{1,2}:\d{2}(?::\d{2})?\s+)?(.+?):\s*$/);
+    if (speakerMatch) {
+      currentSpeaker = speakerMatch[1].trim();
+      speakers.add(currentSpeaker);
+      continue;
+    }
+
+    if (trimmed.length > 0) {
+      entries.push({ speaker: currentSpeaker, text: trimmed });
+    }
+  }
+
+  // Classify items — only keep actions and decisions, skip plain discussion
+  const actionPatterns = /\b(action item|todo|follow up|will do|needs to|need to|take away|next step|assigned to|i'll|i will|we should|we need|let's|circle back|set up|schedule|send|create|update|review|prepare|draft|reach out|check with|look into|figure out|make sure)\b/i;
+  const decisionPatterns = /\b(decided|agreed|decision|we'll go with|let's go with|consensus|approved|confirmed|going to use|switching to|moving forward with)\b/i;
+
+  const items = [];
+  for (const e of entries) {
+    let type = null;
+    if (actionPatterns.test(e.text)) type = 'action';
+    else if (decisionPatterns.test(e.text)) type = 'decision';
+    if (type) items.push({ type, text: e.text, assignee: e.speaker || '' });
+  }
+
+  return { speakers: [...speakers], items };
+}
+
+// ── AWS SigV4 Signing (minimal, for Bedrock) ──
+async function hmacSha256(key, message) {
+  const k = typeof key === 'string' ? new TextEncoder().encode(key) : key;
+  const cryptoKey = await crypto.subtle.importKey('raw', k, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message)));
+}
+async function sha256(message) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function getSignatureKey(secret, dateStamp, region, service) {
+  let k = await hmacSha256('AWS4' + secret, dateStamp);
+  k = await hmacSha256(k, region);
+  k = await hmacSha256(k, service);
+  k = await hmacSha256(k, 'aws4_request');
+  return k;
+}
+async function signBedrockRequest(method, url, body, accessKey, secretKey, region, sessionToken = null) {
+  const u = new URL(url);
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const dateStamp = amzDate.slice(0, 8);
+  const service = 'bedrock';
+  const host = u.host;
+  // Path must be URI-encoded per RFC 3986 for canonical request (encode : as %3A)
+  const path = u.pathname.split('/').map(s => encodeURIComponent(s)).join('/');
+
+  const payloadHash = await sha256(body);
+  // Headers must be in alphabetical order for canonical request
+  let canonicalHeaders = 'content-type:application/json\nhost:' + host + '\nx-amz-content-sha256:' + payloadHash + '\nx-amz-date:' + amzDate;
+  let signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
+
+  if (sessionToken) {
+    canonicalHeaders += '\nx-amz-security-token:' + sessionToken;
+    signedHeaders += ';x-amz-security-token';
+  }
+
+  // Add trailing newline after last header
+  canonicalHeaders += '\n';
+
+  const canonicalRequest = method + '\n' + path + '\n\n' + canonicalHeaders + '\n' + signedHeaders + '\n' + payloadHash;
+
+  console.log('[DEBUG] Canonical Request:', canonicalRequest);
+  console.log('[DEBUG] Canonical Request Hash:', await sha256(canonicalRequest));
+
+  const credentialScope = dateStamp + '/' + region + '/' + service + '/aws4_request';
+  const stringToSign = 'AWS4-HMAC-SHA256\n' + amzDate + '\n' + credentialScope + '\n' + (await sha256(canonicalRequest));
+
+  console.log('[DEBUG] String to Sign:', stringToSign);
+
+  const signingKey = await getSignatureKey(secretKey, dateStamp, region, service);
+  const sig = [...await hmacSha256(signingKey, stringToSign)].map(b => b.toString(16).padStart(2, '0')).join('');
+
+  const authHeader = 'AWS4-HMAC-SHA256 Credential=' + accessKey + '/' + credentialScope + ', SignedHeaders=' + signedHeaders + ', Signature=' + sig;
+
+  const headers = { 'content-type': 'application/json', 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, 'authorization': authHeader };
+  if (sessionToken) headers['x-amz-security-token'] = sessionToken;
+
+  return headers;
+}
+
+// ── Transcript Parsing (AI) — via Amazon Bedrock ──
+async function parseTranscriptAI(rawText, participants) {
+  const accessKey = (localStorage.getItem(AWS_ACCESS_KEY_STORE) || '').trim();
+  const secretKey = (localStorage.getItem(AWS_SECRET_KEY_STORE) || '').trim();
+  const sessionTokenRaw = localStorage.getItem(AWS_SESSION_TOKEN_STORE);
+  console.log('[DEBUG] Session token from localStorage:', sessionTokenRaw ? sessionTokenRaw.slice(0, 30) + '...' : 'null');
+  const sessionToken = (sessionTokenRaw || '').trim() || null;
+  const region = (localStorage.getItem(AWS_REGION_STORE) || 'us-east-1').trim();
+  if (!accessKey || !secretKey) return { error: 'Configure AWS credentials in Settings first' };
+
+  const systemPrompt = `You are a meeting transcript analyzer that extracts actionable work items. Return ONLY valid JSON (no markdown fences, no explanation).
+
+Return this exact JSON structure:
+{
+  "participants": ["Name1", "Name2"],
+  "topics": [
+    {
+      "name": "Topic Name",
+      "items": [
+        {
+          "type": "action|decision",
+          "text": "Concise task title in imperative form",
+          "assignee": "Person or empty string",
+          "status": "open|in-progress|blocked|waiting",
+          "blocker": "Description of blocker or empty string",
+          "project": "Auto-detected project/tool name or empty string",
+          "context": "Brief context for why this matters"
         }
+      ]
+    }
+  ]
+}
+
+CRITICAL RULES for text field:
+- Write concise, actionable task titles — NOT raw transcript quotes
+- Use imperative form: "Schedule Q3 planning meeting" not "we should probably schedule that Q3 planning meeting"
+- Keep titles under 80 characters — put details in context field
+- "Set up vendor onboarding workflow" not "Yeah so I think what we need to do is set up some kind of workflow for onboarding the new vendors"
+- Synthesize related discussion into a single clear task — don't create one item per sentence
+
+EXTRACTION RULES:
+- Only extract items where someone needs to DO something (actions) or where a decision was MADE (decisions)
+- Do NOT include general discussion, status updates, or informational statements
+- Detect implicit assignments: "I'll handle X" assigns to the speaker, "Erica is working on Y" assigns to Erica
+- Detect implicit tasks: "we need to figure out X" = action item, "let's circle back on X" = action item
+- If someone commits to a deadline, include it in the context
+- Identify blockers and dependencies
+- Group related items by topic/subject
+- Auto-detect project names, tool names, and systems mentioned
+- Return ONLY the JSON object, nothing else`;
+
+  const userMessage = (participants.length > 0 ? 'Meeting participants: ' + participants.join(', ') + '\n\n' : '') + 'Transcript:\n' + rawText;
+
+  // Use Claude 3 Sonnet (confirmed working)
+  const modelId = 'anthropic.claude-3-sonnet-20240229-v1:0';
+  const bedrockUrl = `https://bedrock-runtime.${region}.amazonaws.com/model/${modelId}/invoke`;
+  const bodyStr = JSON.stringify({
+    anthropic_version: 'bedrock-2023-05-31',
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMessage }]
+  });
+
+  try {
+    const headers = await signBedrockRequest('POST', bedrockUrl, bodyStr, accessKey, secretKey, region, sessionToken);
+    console.log('[DEBUG] Bedrock URL:', bedrockUrl);
+    console.log('[DEBUG] Access Key (first 10 chars):', accessKey.slice(0, 10));
+    console.log('[DEBUG] Region:', region);
+    console.log('[DEBUG] Has Session Token:', !!sessionToken);
+    console.log('[DEBUG] Headers:', headers);
+    const resp = await fetch(bedrockUrl, { method: 'POST', headers, body: bodyStr });
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '');
+      if (resp.status === 403) {
+        // Parse AWS error for more details
+        try {
+          const awsError = JSON.parse(errText);
+          return { error: 'AWS 403: ' + (awsError.message || awsError.__type || 'Access denied') };
+        } catch {
+          return { error: 'AWS credentials invalid or Bedrock access denied. Error: ' + errText.slice(0, 150) };
+        }
+      }
+      if (resp.status === 429) return { error: 'Rate limited - try again in a moment' };
+      return { error: 'Bedrock error ' + resp.status + (errText ? ': ' + errText.slice(0, 200) : '') };
+    }
+
+    const data = await resp.json();
+    let content = data.content?.[0]?.text || '';
+    content = content.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+
+    let result;
+    try { result = JSON.parse(content); } catch { return { error: 'Failed to parse AI response' }; }
+
+    const speakers = result.participants || [];
+    const items = [];
+    if (result.topics && Array.isArray(result.topics)) {
+      result.topics.forEach(topic => {
+        if (!topic.items || !Array.isArray(topic.items)) return;
+        topic.items.forEach(item => {
+          // Only keep actions and decisions from AI output
+          if (item.type !== 'action' && item.type !== 'decision') return;
+          let text = item.text || '';
+          if (item.blocker) text += ' [Blocked: ' + item.blocker + ']';
+          items.push({
+            type: item.type,
+            text,
+            assignee: item.assignee || '',
+            context: (topic.name ? topic.name + ': ' : '') + (item.context || '')
+          });
+        });
       });
-      updateFilterBadge();
     }
 
-    // --- Filtering Engine ---
-    function applyFilters() {
-      const searchInput = document.getElementById('search-input');
-      const sortSelect = document.getElementById('sort-select');
-      const countEl = document.getElementById('repo-count');
-      const noResultsEl = document.getElementById('no-results');
-      const gridEl = document.getElementById('project-grid');
+    return { speakers, items };
+  } catch {
+    return { error: 'Failed to connect to Claude API' };
+  }
+}
 
-      const search = window.currentSearch;
-      const topics = window.activeTopics;
-      const languages = window.activeLanguages;
-      const sortValue = sortSelect.value;
+// ── Transcript Modal UI ──
+function openTranscriptModal() {
+  document.getElementById('transcriptOverlay').classList.add('open');
+  document.getElementById('meetingDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('meetingTitle').value = '';
+  document.getElementById('transcriptText').value = '';
+  document.getElementById('reviewSection').style.display = 'none';
+  document.getElementById('parseStatus').textContent = '';
+  _parsedItems = [];
+  const hasAws = localStorage.getItem(AWS_ACCESS_KEY_STORE) && localStorage.getItem(AWS_SECRET_KEY_STORE);
+  const aiBtn = document.getElementById('aiParseBtn');
+  aiBtn.disabled = false;
+  aiBtn.title = hasAws ? 'Parse with Claude AI via Bedrock for deeper analysis' : 'Configure AWS credentials in Settings first';
+}
 
-      let filtered = (window.allRepos || []).slice();
+function closeTranscriptModal() {
+  document.getElementById('transcriptOverlay').classList.remove('open');
+  _parsedItems = [];
+}
 
-      if (search) {
-        filtered = filtered.filter(repo => {
-          const name = (repo.name || '').toLowerCase();
-          const desc = (repo.description || '').toLowerCase();
-          const repoTopics = repo.topics || [];
-          return name.includes(search) ||
-                 desc.includes(search) ||
-                 repoTopics.some(t => t.toLowerCase().includes(search));
-        });
-      }
+function switchTranscriptTab(tab) {
+  document.querySelectorAll('#transcriptTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('uploadTab').style.display = tab === 'upload' ? '' : 'none';
+  document.getElementById('pasteTab').style.display = tab === 'paste' ? '' : 'none';
+}
 
-      if (topics.length > 0) {
-        filtered = filtered.filter(repo => {
-          const repoTopics = repo.topics || [];
-          return topics.every(t => repoTopics.includes(t));
-        });
-      }
-
-      if (languages.length > 0) {
-        filtered = filtered.filter(repo => {
-          return repo.language && languages.includes(repo.language);
-        });
-      }
-
-      if (sortValue === 'updated-desc') {
-        filtered.sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
-      } else if (sortValue === 'updated-asc') {
-        filtered.sort((a, b) => new Date(a.pushed_at) - new Date(b.pushed_at));
-      } else if (sortValue === 'name-asc') {
-        filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      }
-
-      renderGrid(filtered);
-
-      const total = (window.allRepos || []).length;
-      if (filtered.length === total) {
-        countEl.textContent = `Showing ${total} repositories`;
-      } else {
-        countEl.textContent = `Showing ${filtered.length} of ${total} repositories`;
-      }
-
-      if (filtered.length === 0 && total > 0) {
-        noResultsEl.style.display = '';
-        gridEl.style.display = 'none';
-      } else {
-        noResultsEl.style.display = 'none';
-        gridEl.style.display = '';
-      }
-
-      updateHash();
+function handleFileUpload(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('transcriptText').value = e.target.result;
+    // Auto-extract title from filename
+    const name = file.name.replace(/\.(txt|vtt)$/i, '').replace(/[_-]/g, ' ');
+    if (!document.getElementById('meetingTitle').value) {
+      document.getElementById('meetingTitle').value = name;
     }
+    switchTranscriptTab('paste');
+    showToast('File loaded: ' + file.name);
+  };
+  reader.readAsText(file);
+}
 
-    // --- URL Hash Sync ---
-    function updateHash() {
-      const parts = [];
-      if (window.currentSearch) {
-        parts.push('search=' + encodeURIComponent(window.currentSearch));
-      }
-      if (window.activeTopics.length > 0) {
-        parts.push('topic=' + window.activeTopics.map(encodeURIComponent).join(','));
-      }
-      if (window.activeLanguages.length > 0) {
-        parts.push('lang=' + window.activeLanguages.map(encodeURIComponent).join(','));
-      }
-      const sortSelect = document.getElementById('sort-select');
-      if (sortSelect && sortSelect.value !== 'updated-desc') {
-        parts.push('sort=' + sortSelect.value);
-      }
-      window.location.hash = parts.length > 0 ? parts.join('&') : '';
-    }
+async function runParse(mode) {
+  const text = document.getElementById('transcriptText').value.trim();
+  if (!text) { showToast('Paste or upload a transcript first', 'error'); return; }
 
-    function readHash() {
-      const hash = window.location.hash.replace(/^#/, '');
-      const searchInput = document.getElementById('search-input');
-      const sortSelect = document.getElementById('sort-select');
-      const clearBtn = document.getElementById('search-clear');
+  const statusEl = document.getElementById('parseStatus');
+  const parseBtn = document.getElementById('parseBtn');
+  const aiBtn = document.getElementById('aiParseBtn');
 
-      if (!hash) {
-        window.currentSearch = '';
-        window.activeTopics = [];
-        window.activeLanguages = [];
-        if (searchInput) searchInput.value = '';
-        if (sortSelect) sortSelect.value = 'updated-desc';
-        if (clearBtn) clearBtn.style.display = 'none';
-        applyFilters();
-        highlightActiveChips();
-        return;
-      }
+  if (mode === 'ai') {
+    aiBtn.disabled = true;
+    aiBtn.innerHTML = 'Analyzing<span class="loading-dots"></span>';
+    statusEl.textContent = '';
 
-      const pairs = hash.split('&');
-      let hasValidPair = false;
+    const participants = teamMembers.map(m => m.name);
+    const result = await parseTranscriptAI(text, participants);
 
-      window.currentSearch = '';
-      window.activeTopics = [];
-      window.activeLanguages = [];
-      if (sortSelect) sortSelect.value = 'updated-desc';
+    aiBtn.disabled = false;
+    aiBtn.textContent = 'Parse with AI';
 
-      for (const pair of pairs) {
-        const eqIndex = pair.indexOf('=');
-        if (eqIndex === -1) continue;
-        const key = pair.substring(0, eqIndex);
-        const value = pair.substring(eqIndex + 1);
-        if (!value) continue;
 
-        hasValidPair = true;
+    if (result.error) { showToast(result.error, 'error'); return; }
 
-        if (key === 'search') {
-          const decoded = decodeURIComponent(value);
-          window.currentSearch = decoded.toLowerCase();
-          if (searchInput) searchInput.value = decoded;
-        } else if (key === 'topic') {
-          window.activeTopics = value.split(',').map(decodeURIComponent).filter(Boolean);
-        } else if (key === 'lang') {
-          window.activeLanguages = value.split(',').map(decodeURIComponent).filter(Boolean);
-        } else if (key === 'sort') {
-          const validSorts = ['updated-desc', 'updated-asc', 'name-asc'];
-          if (validSorts.includes(value) && sortSelect) {
-            sortSelect.value = value;
-          }
-        }
-      }
+    _parsedItems = result.items.map((item, i) => ({ ...item, include: true, id: i }));
+    // Auto-detect new speakers
+    await autoDetectSpeakers(result.speakers);
+    showToast('AI analysis complete - ' + _parsedItems.length + ' items extracted');
+  } else {
+    parseBtn.disabled = true;
+    statusEl.textContent = 'Parsing...';
 
-      if (!hasValidPair) {
-        if (searchInput) searchInput.value = '';
-        if (clearBtn) clearBtn.style.display = 'none';
-      }
+    const result = parseTranscriptHeuristic(text);
 
-      if (searchInput) {
-        clearBtn.style.display = searchInput.value ? '' : 'none';
-      }
+    parseBtn.disabled = false;
+    statusEl.textContent = '';
 
-      applyFilters();
-      highlightActiveChips();
-    }
+    _parsedItems = result.items.map((item, i) => ({ ...item, include: true, id: i }));
+    await autoDetectSpeakers(result.speakers);
+    showToast('Parsed ' + _parsedItems.length + ' items from transcript');
+  }
 
-    window.addEventListener('hashchange', readHash);
+  renderTranscriptReview();
+}
 
-    // --- Wire Controls ---
-    document.getElementById('search-input').addEventListener('input', function() {
-      window.currentSearch = this.value.toLowerCase();
-      document.getElementById('search-clear').style.display = this.value ? '' : 'none';
-      applyFilters();
+async function autoDetectSpeakers(speakers) {
+  const newSpeakers = speakers.filter(s => s && !teamMembers.find(m => m.name.toLowerCase() === s.toLowerCase()));
+  for (const name of newSpeakers) {
+    await addTeamMember(name, 'transcript');
+  }
+  if (newSpeakers.length > 0) {
+    showToast('Added ' + newSpeakers.length + ' new team member(s)');
+  }
+}
+
+function renderTranscriptReview() {
+  const section = document.getElementById('reviewSection');
+  if (_parsedItems.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+
+  const actions = _parsedItems.filter(i => i.type === 'action').length;
+  const decisions = _parsedItems.filter(i => i.type === 'decision').length;
+  document.getElementById('reviewStats').textContent = `${_parsedItems.length} items: ${actions} actions, ${decisions} decisions`;
+
+  const table = document.getElementById('reviewTable');
+  table.innerHTML = _parsedItems.map((item, idx) => `
+    <div class="review-item">
+      <input type="checkbox" ${item.include ? 'checked' : ''} data-ridx="${idx}" class="review-check">
+      <select data-ridx="${idx}" class="review-type-select">
+        ${['action', 'decision', 'discussion'].map(t => `<option value="${t}" ${item.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+      </select>
+      <span class="review-text">${esc(item.text)}</span>
+      ${item.assignee ? `<span class="review-assignee">${esc(item.assignee)}</span>` : ''}
+      <button class="review-remove" data-ridx="${idx}" title="Remove">&times;</button>
+    </div>
+  `).join('');
+
+  // Bind events
+  table.querySelectorAll('.review-check').forEach(cb => {
+    cb.addEventListener('change', () => { _parsedItems[+cb.dataset.ridx].include = cb.checked; });
+  });
+  table.querySelectorAll('.review-type-select').forEach(sel => {
+    sel.addEventListener('change', () => { _parsedItems[+sel.dataset.ridx].type = sel.value; });
+  });
+  table.querySelectorAll('.review-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _parsedItems.splice(+btn.dataset.ridx, 1);
+      renderTranscriptReview();
     });
+  });
+}
 
-    document.getElementById('search-clear').addEventListener('click', function() {
-      const searchInput = document.getElementById('search-input');
-      searchInput.value = '';
-      window.currentSearch = '';
-      this.style.display = 'none';
-      applyFilters();
+async function acceptParsedItems() {
+  const included = _parsedItems.filter(i => i.include);
+  if (included.length === 0) { showToast('No items selected', 'error'); return; }
+
+  const title = document.getElementById('meetingTitle').value.trim() || 'Untitled Meeting';
+  const date = document.getElementById('meetingDate').value || new Date().toISOString().split('T')[0];
+  const participants = [...new Set(included.map(i => i.assignee).filter(Boolean))];
+
+  const meeting = await saveMeeting(title, date, participants, document.getElementById('transcriptText').value);
+
+  for (const item of included) {
+    const member = teamMembers.find(m => m.name.toLowerCase() === (item.assignee || '').toLowerCase());
+    const task = normalizeTask({
+      id: crypto.randomUUID(),
+      title: item.text,
+      status: 'todo',
+      description: item.context || '',
+      labels: [item.type],
+      dueDate: '',
+      checklist: [],
+      assigneeName: item.assignee || null,
+      assigneeId: member?.id || null,
+      meetingId: meeting.id,
+      meetingTitle: meeting.title,
+      itemType: item.type,
+      createdAt: new Date().toISOString(),
+      completedAt: null
     });
+    tasks.unshift(task);
+    await saveTask(task);
+  }
 
-    document.getElementById('sort-select').addEventListener('change', applyFilters);
+  showToast('Created ' + included.length + ' tasks from transcript', 'success');
+  closeTranscriptModal();
+  render();
+}
 
-    document.getElementById('clear-filters-btn').addEventListener('click', function() {
-      const searchInput = document.getElementById('search-input');
-      const sortSelect = document.getElementById('sort-select');
-      searchInput.value = '';
-      window.currentSearch = '';
-      window.activeTopics = [];
-      window.activeLanguages = [];
-      sortSelect.value = 'updated-desc';
-      document.getElementById('search-clear').style.display = 'none';
-      document.querySelectorAll('.filter-chip').forEach(chip => chip.classList.remove('active'));
-      updateFilterBadge();
-      applyFilters();
+// ── Settings Modal ──
+function openSettings() {
+  document.getElementById('settingsOverlay').classList.add('open');
+  document.getElementById('supabaseUrl').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
+  document.getElementById('supabaseKey').value = localStorage.getItem(SUPABASE_ANON_KEY_STORE) || '';
+  document.getElementById('awsAccessKey').value = localStorage.getItem(AWS_ACCESS_KEY_STORE) || '';
+  document.getElementById('awsSecretKey').value = localStorage.getItem(AWS_SECRET_KEY_STORE) || '';
+  document.getElementById('awsSessionToken').value = localStorage.getItem(AWS_SESSION_TOKEN_STORE) || '';
+  document.getElementById('awsRegion').value = localStorage.getItem(AWS_REGION_STORE) || '';
+  const statusEl = document.getElementById('settingsStatus');
+  statusEl.innerHTML = sb
+    ? '<span class="settings-status connected">Connected to Supabase</span>'
+    : '<span class="settings-status disconnected">Using localStorage (offline)</span>';
+}
+function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
+
+async function saveSettings() {
+  const url = document.getElementById('supabaseUrl').value.trim();
+  const anon = document.getElementById('supabaseKey').value.trim();
+  const awsAccess = document.getElementById('awsAccessKey').value.trim();
+  const awsSecret = document.getElementById('awsSecretKey').value.trim();
+  const awsSessionToken = document.getElementById('awsSessionToken').value.trim();
+  const awsRegion = document.getElementById('awsRegion').value.trim();
+
+  console.log('[DEBUG] Saving session token:', awsSessionToken ? awsSessionToken.slice(0, 30) + '...' : 'empty');
+
+  if (url) localStorage.setItem(SUPABASE_URL_KEY, url); else localStorage.removeItem(SUPABASE_URL_KEY);
+  if (anon) localStorage.setItem(SUPABASE_ANON_KEY_STORE, anon); else localStorage.removeItem(SUPABASE_ANON_KEY_STORE);
+  if (awsAccess) localStorage.setItem(AWS_ACCESS_KEY_STORE, awsAccess); else localStorage.removeItem(AWS_ACCESS_KEY_STORE);
+  if (awsSecret) localStorage.setItem(AWS_SECRET_KEY_STORE, awsSecret); else localStorage.removeItem(AWS_SECRET_KEY_STORE);
+  if (awsSessionToken) localStorage.setItem(AWS_SESSION_TOKEN_STORE, awsSessionToken); else localStorage.removeItem(AWS_SESSION_TOKEN_STORE);
+  if (awsRegion) localStorage.setItem(AWS_REGION_STORE, awsRegion); else localStorage.removeItem(AWS_REGION_STORE);
+
+  const connected = initSupabase();
+  if (connected) {
+    await migrateToSupabase();
+    await loadTeamMembers();
+    await loadTasks();
+    renderAssigneeFilters();
+    render();
+    showToast('Connected to Supabase', 'success');
+  } else if (!url && !anon) {
+    showToast('Settings saved (localStorage mode)');
+  } else {
+    showToast('Could not connect to Supabase', 'error');
+  }
+  closeSettings();
+}
+
+// ── Team Management Modal ──
+function openTeamModal() {
+  document.getElementById('teamOverlay').classList.add('open');
+  renderTeamList();
+}
+function closeTeamModal() { document.getElementById('teamOverlay').classList.remove('open'); }
+
+function renderTeamList() {
+  const el = document.getElementById('teamList');
+  if (teamMembers.length === 0) {
+    el.innerHTML = '<div style="padding:12px;color:var(--text-secondary);font-size:13px">No team members yet. Add members below or upload a transcript to auto-detect.</div>';
+    return;
+  }
+  el.innerHTML = teamMembers.map(m => `
+    <div class="team-member-row">
+      <span class="avatar-chip" style="background:${m.avatar_color || '#888'}">${esc(getInitials(m.name))}</span>
+      <span>${esc(m.name)}</span>
+      <span class="member-source">${m.source || 'manual'}</span>
+      <button data-mid="${m.id}" title="Remove">&times;</button>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('button[data-mid]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (confirm('Remove ' + teamMembers.find(m => m.id === btn.dataset.mid)?.name + '?')) {
+        removeTeamMember(btn.dataset.mid).then(renderTeamList);
+      }
     });
+  });
+}
 
-    // --- Main Initialization ---
-    async function initDashboard() {
-      const statusEl = document.getElementById('status');
-      const errorEl = document.getElementById('error');
-      const promptEl = document.getElementById('token-prompt');
-      const gridEl = document.getElementById('project-grid');
-      const countEl = document.getElementById('repo-count');
+// ── Init ──
+(async function init() {
+  initTheme();
+  updateThemeIcon();
+  initSupabase();
+  await loadTeamMembers();
+  await loadTasks();
+  renderLabelFilters();
+  renderAssigneeFilters();
+  render();
 
-      statusEl.style.display = '';
-      statusEl.textContent = 'Loading repositories...';
-      errorEl.style.display = 'none';
-      promptEl.style.display = 'none';
-      gridEl.innerHTML = '';
+  // Event bindings
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  document.getElementById('newTaskBtn').addEventListener('click', openModal);
+  document.getElementById('modalCancel').addEventListener('click', closeModal);
+  document.getElementById('modalAdd').addEventListener('click', addTask);
+  document.getElementById('newTitle').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+  document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+  document.getElementById('panelOverlay').addEventListener('click', closePanel);
+  document.getElementById('panelClose').addEventListener('click', closePanel);
+  document.getElementById('deleteTaskBtn').addEventListener('click', deleteTask);
+  document.getElementById('searchInput').addEventListener('input', render);
+  document.querySelector('.sidebar-toggle').addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
+  document.querySelectorAll('.view-toggle button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+  document.querySelectorAll('#statusFilters input, #dueDateFilters input').forEach(el => el.addEventListener('change', render));
+  document.getElementById('labelFilters').addEventListener('change', render);
+  document.getElementById('assigneeFilters').addEventListener('change', render);
 
-      try {
-        const repos = await fetchAllRepos();
-        window.allRepos = repos;
-        statusEl.style.display = 'none';
+  // Transcript modal
+  document.getElementById('transcriptBtn').addEventListener('click', openTranscriptModal);
+  document.getElementById('transcriptClose').addEventListener('click', closeTranscriptModal);
+  document.getElementById('transcriptOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeTranscriptModal(); });
+  document.querySelectorAll('#transcriptTabs button').forEach(b => b.addEventListener('click', () => switchTranscriptTab(b.dataset.tab)));
+  document.getElementById('fileInput').addEventListener('change', e => handleFileUpload(e.target.files[0]));
+  document.getElementById('parseBtn').addEventListener('click', () => runParse('heuristic'));
+  document.getElementById('aiParseBtn').addEventListener('click', () => runParse('ai'));
+  document.getElementById('reviewCancel').addEventListener('click', () => {
+    _parsedItems = [];
+    document.getElementById('reviewSection').style.display = 'none';
+  });
+  document.getElementById('reviewAccept').addEventListener('click', acceptParsedItems);
 
-        if (repos.length === 0) {
-          const emptyDiv = document.createElement('div');
-          emptyDiv.style.textAlign = 'center';
-          emptyDiv.style.padding = '40px';
-          emptyDiv.style.gridColumn = '1 / -1';
+  // Drop zone
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-hover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-hover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-hover');
+    const file = e.dataTransfer.files[0];
+    if (file && /\.(txt|vtt)$/i.test(file.name)) handleFileUpload(file);
+    else showToast('Please drop a .txt or .vtt file', 'error');
+  });
 
-          const emptyMsg = document.createElement('p');
-          emptyMsg.textContent = 'No repositories found.';
-          emptyDiv.appendChild(emptyMsg);
+  // Settings
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
+  document.getElementById('settingsCancel').addEventListener('click', closeSettings);
+  document.getElementById('settingsOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeSettings(); });
+  document.getElementById('settingsSave').addEventListener('click', saveSettings);
 
-          const createLink = document.createElement('a');
-          createLink.href = 'https://github.com/new';
-          createLink.target = '_blank';
-          createLink.rel = 'noopener noreferrer';
-          createLink.textContent = 'Create your first repository on GitHub';
-          emptyDiv.appendChild(createLink);
-
-          gridEl.appendChild(emptyDiv);
-          countEl.textContent = 'Showing 0 repositories';
-          return;
-        }
-
-        countEl.textContent = `Showing ${repos.length} repositories`;
-        renderGrid(repos);
-        document.getElementById('controls').style.display = '';
-        renderFilterChips();
-        readHash();
-      } catch (err) {
-        if (err.message === 'RATE_LIMITED') {
-          showError('GitHub API rate limit reached. Unauthenticated requests are limited to 60 per hour.', true, true);
-        } else if (err.message === 'AUTH_FAILED') {
-          clearToken();
-          showError('GitHub token is invalid or expired. Please re-enter your token.', true, true);
-        } else if (err.message === 'API_ERROR: 404') {
-          showError('GitHub user not found. Check the username in the dashboard configuration.', false, false);
-        } else {
-          showError('Failed to fetch repositories. Check your internet connection and try again.', true, false);
-        }
+  // Team management
+  document.getElementById('manageTeamLink').addEventListener('click', openTeamModal);
+  document.getElementById('teamClose').addEventListener('click', closeTeamModal);
+  document.getElementById('teamOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeTeamModal(); });
+  document.getElementById('addMemberBtn').addEventListener('click', async () => {
+    const input = document.getElementById('newMemberName');
+    const name = input.value.trim();
+    if (name) {
+      await addTeamMember(name, 'manual');
+      input.value = '';
+      renderTeamList();
+      showToast('Added ' + name);
+    }
+  });
+  document.getElementById('newMemberName').addEventListener('keydown', async e => {
+    if (e.key === 'Enter') {
+      const input = e.target;
+      const name = input.value.trim();
+      if (name) {
+        await addTeamMember(name, 'manual');
+        input.value = '';
+        renderTeamList();
+        showToast('Added ' + name);
       }
     }
-
-    // --- Token Button Handler ---
-    document.getElementById('token-btn').addEventListener('click', () => {
-      showTokenPrompt();
-    });
-
-    // --- Auto-start ---
-    initDashboard();
-  </script>
+  });
+})();
+</script>
 </body>
 </html>
