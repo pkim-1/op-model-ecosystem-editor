@@ -899,7 +899,7 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); opacity: 0; poin
       </div>
       <div class="parse-actions">
         <button class="btn btn-primary" id="parseBtn">Parse Transcript</button>
-        <button class="btn" id="aiParseBtn" title="Uses Claude API - configure key in Settings">Parse with AI</button>
+        <button class="btn" id="aiParseBtn" title="Parse with Claude AI via Bedrock">Parse with AI</button>
         <span id="parseStatus" style="font-size:12px;color:var(--text-secondary)"></span>
       </div>
       <div class="review-section" id="reviewSection" style="display:none">
@@ -938,6 +938,11 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); opacity: 0; poin
       <label for="awsSecretKey">AWS Secret Access Key</label>
       <input type="text" id="awsSecretKey" placeholder="wJalr...">
       <small>Stored in browser localStorage only</small>
+    </div>
+    <div class="field-group">
+      <label for="awsSessionToken">AWS Session Token (optional)</label>
+      <input type="text" id="awsSessionToken" placeholder="IQoJ... (for temporary credentials only)">
+      <small>Required if using temporary credentials (ASIA keys)</small>
     </div>
     <div class="field-group">
       <label for="awsRegion">AWS Region</label>
@@ -988,6 +993,7 @@ const SUPABASE_URL_KEY = 'waypoint_supabase_url';
 const SUPABASE_ANON_KEY_STORE = 'waypoint_supabase_anon';
 const AWS_ACCESS_KEY_STORE = 'waypoint_aws_access_key';
 const AWS_SECRET_KEY_STORE = 'waypoint_aws_secret_key';
+const AWS_SESSION_TOKEN_STORE = 'waypoint_aws_session_token';
 const AWS_REGION_STORE = 'waypoint_aws_region';
 
 const AVATAR_COLORS = ['#ff6b35','#007aff','#af52de','#ff3b30','#34c759','#5ac8fa','#ff9500','#00a878','#000099','#4248ED'];
@@ -1714,7 +1720,7 @@ async function getSignatureKey(secret, dateStamp, region, service) {
   k = await hmacSha256(k, 'aws4_request');
   return k;
 }
-async function signBedrockRequest(method, url, body, accessKey, secretKey, region) {
+async function signBedrockRequest(method, url, body, accessKey, secretKey, region, sessionToken = null) {
   const u = new URL(url);
   const now = new Date();
   const amzDate = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
@@ -1724,8 +1730,14 @@ async function signBedrockRequest(method, url, body, accessKey, secretKey, regio
   const path = u.pathname;
 
   const payloadHash = await sha256(body);
-  const canonicalHeaders = 'content-type:application/json\nhost:' + host + '\nx-amz-date:' + amzDate + '\n';
-  const signedHeaders = 'content-type;host;x-amz-date';
+  let canonicalHeaders = 'content-type:application/json\nhost:' + host + '\nx-amz-content-sha256:' + payloadHash + '\nx-amz-date:' + amzDate + '\n';
+  let signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
+
+  if (sessionToken) {
+    canonicalHeaders += 'x-amz-security-token:' + sessionToken + '\n';
+    signedHeaders += ';x-amz-security-token';
+  }
+
   const canonicalRequest = method + '\n' + path + '\n\n' + canonicalHeaders + '\n' + signedHeaders + '\n' + payloadHash;
 
   const credentialScope = dateStamp + '/' + region + '/' + service + '/aws4_request';
@@ -1736,14 +1748,18 @@ async function signBedrockRequest(method, url, body, accessKey, secretKey, regio
 
   const authHeader = 'AWS4-HMAC-SHA256 Credential=' + accessKey + '/' + credentialScope + ', SignedHeaders=' + signedHeaders + ', Signature=' + sig;
 
-  return { 'content-type': 'application/json', 'x-amz-date': amzDate, 'authorization': authHeader };
+  const headers = { 'content-type': 'application/json', 'host': host, 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, 'authorization': authHeader };
+  if (sessionToken) headers['x-amz-security-token'] = sessionToken;
+
+  return headers;
 }
 
 // ── Transcript Parsing (AI) — via Amazon Bedrock ──
 async function parseTranscriptAI(rawText, participants) {
-  const accessKey = localStorage.getItem(AWS_ACCESS_KEY_STORE);
-  const secretKey = localStorage.getItem(AWS_SECRET_KEY_STORE);
-  const region = localStorage.getItem(AWS_REGION_STORE) || 'us-east-1';
+  const accessKey = (localStorage.getItem(AWS_ACCESS_KEY_STORE) || '').trim();
+  const secretKey = (localStorage.getItem(AWS_SECRET_KEY_STORE) || '').trim();
+  const sessionToken = (localStorage.getItem(AWS_SESSION_TOKEN_STORE) || '').trim() || null;
+  const region = (localStorage.getItem(AWS_REGION_STORE) || 'us-east-1').trim();
   if (!accessKey || !secretKey) return { error: 'Configure AWS credentials in Settings first' };
 
   const systemPrompt = `You are a meeting transcript analyzer that extracts actionable work items. Return ONLY valid JSON (no markdown fences, no explanation).
@@ -1799,13 +1815,26 @@ EXTRACTION RULES:
   });
 
   try {
-    const headers = await signBedrockRequest('POST', bedrockUrl, bodyStr, accessKey, secretKey, region);
+    const headers = await signBedrockRequest('POST', bedrockUrl, bodyStr, accessKey, secretKey, region, sessionToken);
+    console.log('[DEBUG] Bedrock URL:', bedrockUrl);
+    console.log('[DEBUG] Access Key (first 10 chars):', accessKey.slice(0, 10));
+    console.log('[DEBUG] Region:', region);
+    console.log('[DEBUG] Has Session Token:', !!sessionToken);
+    console.log('[DEBUG] Headers:', headers);
     const resp = await fetch(bedrockUrl, { method: 'POST', headers, body: bodyStr });
 
     if (!resp.ok) {
-      if (resp.status === 403) return { error: 'AWS credentials invalid or Bedrock access denied' };
-      if (resp.status === 429) return { error: 'Rate limited - try again in a moment' };
       const errText = await resp.text().catch(() => '');
+      if (resp.status === 403) {
+        // Parse AWS error for more details
+        try {
+          const awsError = JSON.parse(errText);
+          return { error: 'AWS 403: ' + (awsError.message || awsError.__type || 'Access denied') };
+        } catch {
+          return { error: 'AWS credentials invalid or Bedrock access denied. Error: ' + errText.slice(0, 150) };
+        }
+      }
+      if (resp.status === 429) return { error: 'Rate limited - try again in a moment' };
       return { error: 'Bedrock error ' + resp.status + (errText ? ': ' + errText.slice(0, 200) : '') };
     }
 
@@ -1853,7 +1882,7 @@ function openTranscriptModal() {
   _parsedItems = [];
   const hasAws = localStorage.getItem(AWS_ACCESS_KEY_STORE) && localStorage.getItem(AWS_SECRET_KEY_STORE);
   const aiBtn = document.getElementById('aiParseBtn');
-  aiBtn.disabled = !hasAws;
+  aiBtn.disabled = false;
   aiBtn.title = hasAws ? 'Parse with Claude AI via Bedrock for deeper analysis' : 'Configure AWS credentials in Settings first';
 }
 
@@ -1902,7 +1931,7 @@ async function runParse(mode) {
 
     aiBtn.disabled = false;
     aiBtn.textContent = 'Parse with AI';
-    if (!localStorage.getItem(AWS_ACCESS_KEY_STORE)) { aiBtn.disabled = true; }
+
 
     if (result.error) { showToast(result.error, 'error'); return; }
 
@@ -2021,6 +2050,7 @@ function openSettings() {
   document.getElementById('supabaseKey').value = localStorage.getItem(SUPABASE_ANON_KEY_STORE) || '';
   document.getElementById('awsAccessKey').value = localStorage.getItem(AWS_ACCESS_KEY_STORE) || '';
   document.getElementById('awsSecretKey').value = localStorage.getItem(AWS_SECRET_KEY_STORE) || '';
+  document.getElementById('awsSessionToken').value = localStorage.getItem(AWS_SESSION_TOKEN_STORE) || '';
   document.getElementById('awsRegion').value = localStorage.getItem(AWS_REGION_STORE) || '';
   const statusEl = document.getElementById('settingsStatus');
   statusEl.innerHTML = sb
@@ -2034,12 +2064,14 @@ async function saveSettings() {
   const anon = document.getElementById('supabaseKey').value.trim();
   const awsAccess = document.getElementById('awsAccessKey').value.trim();
   const awsSecret = document.getElementById('awsSecretKey').value.trim();
+  const awsSessionToken = document.getElementById('awsSessionToken').value.trim();
   const awsRegion = document.getElementById('awsRegion').value.trim();
 
   if (url) localStorage.setItem(SUPABASE_URL_KEY, url); else localStorage.removeItem(SUPABASE_URL_KEY);
   if (anon) localStorage.setItem(SUPABASE_ANON_KEY_STORE, anon); else localStorage.removeItem(SUPABASE_ANON_KEY_STORE);
   if (awsAccess) localStorage.setItem(AWS_ACCESS_KEY_STORE, awsAccess); else localStorage.removeItem(AWS_ACCESS_KEY_STORE);
   if (awsSecret) localStorage.setItem(AWS_SECRET_KEY_STORE, awsSecret); else localStorage.removeItem(AWS_SECRET_KEY_STORE);
+  if (awsSessionToken) localStorage.setItem(AWS_SESSION_TOKEN_STORE, awsSessionToken); else localStorage.removeItem(AWS_SESSION_TOKEN_STORE);
   if (awsRegion) localStorage.setItem(AWS_REGION_STORE, awsRegion); else localStorage.removeItem(AWS_REGION_STORE);
 
   const connected = initSupabase();
