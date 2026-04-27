@@ -930,9 +930,19 @@ body.sidebar-collapsed .sidebar { transform: translateX(-100%); opacity: 0; poin
       <small>Public anon key (safe for browser use)</small>
     </div>
     <div class="field-group">
-      <label for="claudeKey">Claude API Key</label>
-      <input type="text" id="claudeKey" placeholder="sk-ant-...">
-      <small>Required for AI transcript parsing</small>
+      <label for="awsAccessKey">AWS Access Key ID</label>
+      <input type="text" id="awsAccessKey" placeholder="AKIA...">
+      <small>For Claude via Amazon Bedrock</small>
+    </div>
+    <div class="field-group">
+      <label for="awsSecretKey">AWS Secret Access Key</label>
+      <input type="text" id="awsSecretKey" placeholder="wJalr...">
+      <small>Stored in browser localStorage only</small>
+    </div>
+    <div class="field-group">
+      <label for="awsRegion">AWS Region</label>
+      <input type="text" id="awsRegion" placeholder="us-east-1">
+      <small>Region where Bedrock is enabled</small>
     </div>
     <div class="modal-actions">
       <button class="btn" id="settingsCancel">Cancel</button>
@@ -976,7 +986,9 @@ const THEME_KEY = 'waypoint_theme';
 const MEMBERS_KEY = 'waypoint_members';
 const SUPABASE_URL_KEY = 'waypoint_supabase_url';
 const SUPABASE_ANON_KEY_STORE = 'waypoint_supabase_anon';
-const CLAUDE_KEY_STORAGE = 'waypoint_claude_key';
+const AWS_ACCESS_KEY_STORE = 'waypoint_aws_access_key';
+const AWS_SECRET_KEY_STORE = 'waypoint_aws_secret_key';
+const AWS_REGION_STORE = 'waypoint_aws_region';
 
 const AVATAR_COLORS = ['#ff6b35','#007aff','#af52de','#ff3b30','#34c759','#5ac8fa','#ff9500','#00a878','#000099','#4248ED'];
 
@@ -1685,10 +1697,54 @@ function parseTranscriptHeuristic(rawText) {
   return { speakers: [...speakers], items };
 }
 
-// ── Transcript Parsing (AI) — ported from meeting-tracker.html ──
+// ── AWS SigV4 Signing (minimal, for Bedrock) ──
+async function hmacSha256(key, message) {
+  const k = typeof key === 'string' ? new TextEncoder().encode(key) : key;
+  const cryptoKey = await crypto.subtle.importKey('raw', k, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message)));
+}
+async function sha256(message) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function getSignatureKey(secret, dateStamp, region, service) {
+  let k = await hmacSha256('AWS4' + secret, dateStamp);
+  k = await hmacSha256(k, region);
+  k = await hmacSha256(k, service);
+  k = await hmacSha256(k, 'aws4_request');
+  return k;
+}
+async function signBedrockRequest(method, url, body, accessKey, secretKey, region) {
+  const u = new URL(url);
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const dateStamp = amzDate.slice(0, 8);
+  const service = 'bedrock';
+  const host = u.host;
+  const path = u.pathname;
+
+  const payloadHash = await sha256(body);
+  const canonicalHeaders = 'content-type:application/json\nhost:' + host + '\nx-amz-date:' + amzDate + '\n';
+  const signedHeaders = 'content-type;host;x-amz-date';
+  const canonicalRequest = method + '\n' + path + '\n\n' + canonicalHeaders + '\n' + signedHeaders + '\n' + payloadHash;
+
+  const credentialScope = dateStamp + '/' + region + '/' + service + '/aws4_request';
+  const stringToSign = 'AWS4-HMAC-SHA256\n' + amzDate + '\n' + credentialScope + '\n' + (await sha256(canonicalRequest));
+
+  const signingKey = await getSignatureKey(secretKey, dateStamp, region, service);
+  const sig = [...await hmacSha256(signingKey, stringToSign)].map(b => b.toString(16).padStart(2, '0')).join('');
+
+  const authHeader = 'AWS4-HMAC-SHA256 Credential=' + accessKey + '/' + credentialScope + ', SignedHeaders=' + signedHeaders + ', Signature=' + sig;
+
+  return { 'content-type': 'application/json', 'x-amz-date': amzDate, 'authorization': authHeader };
+}
+
+// ── Transcript Parsing (AI) — via Amazon Bedrock ──
 async function parseTranscriptAI(rawText, participants) {
-  const key = localStorage.getItem(CLAUDE_KEY_STORAGE);
-  if (!key) return { error: 'Configure Claude API key in Settings first' };
+  const accessKey = localStorage.getItem(AWS_ACCESS_KEY_STORE);
+  const secretKey = localStorage.getItem(AWS_SECRET_KEY_STORE);
+  const region = localStorage.getItem(AWS_REGION_STORE) || 'us-east-1';
+  if (!accessKey || !secretKey) return { error: 'Configure AWS credentials in Settings first' };
 
   const systemPrompt = `You are a meeting transcript analyzer that extracts actionable work items. Return ONLY valid JSON (no markdown fences, no explanation).
 
@@ -1733,27 +1789,24 @@ EXTRACTION RULES:
 
   const userMessage = (participants.length > 0 ? 'Meeting participants: ' + participants.join(', ') + '\n\n' : '') + 'Transcript:\n' + rawText;
 
+  const modelId = 'anthropic.claude-sonnet-4-20250514-v1:0';
+  const bedrockUrl = `https://bedrock-runtime.${region}.amazonaws.com/model/${modelId}/invoke`;
+  const bodyStr = JSON.stringify({
+    anthropic_version: 'bedrock-2023-05-31',
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMessage }]
+  });
+
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }]
-      })
-    });
+    const headers = await signBedrockRequest('POST', bedrockUrl, bodyStr, accessKey, secretKey, region);
+    const resp = await fetch(bedrockUrl, { method: 'POST', headers, body: bodyStr });
 
     if (!resp.ok) {
-      if (resp.status === 401) return { error: 'Invalid API key - check Settings' };
+      if (resp.status === 403) return { error: 'AWS credentials invalid or Bedrock access denied' };
       if (resp.status === 429) return { error: 'Rate limited - try again in a moment' };
-      return { error: 'API error: ' + resp.status };
+      const errText = await resp.text().catch(() => '');
+      return { error: 'Bedrock error ' + resp.status + (errText ? ': ' + errText.slice(0, 200) : '') };
     }
 
     const data = await resp.json();
@@ -1798,10 +1851,10 @@ function openTranscriptModal() {
   document.getElementById('reviewSection').style.display = 'none';
   document.getElementById('parseStatus').textContent = '';
   _parsedItems = [];
-  const claudeKey = localStorage.getItem(CLAUDE_KEY_STORAGE);
+  const hasAws = localStorage.getItem(AWS_ACCESS_KEY_STORE) && localStorage.getItem(AWS_SECRET_KEY_STORE);
   const aiBtn = document.getElementById('aiParseBtn');
-  aiBtn.disabled = !claudeKey;
-  aiBtn.title = claudeKey ? 'Parse with Claude AI for deeper analysis' : 'Configure Claude API key in Settings first';
+  aiBtn.disabled = !hasAws;
+  aiBtn.title = hasAws ? 'Parse with Claude AI via Bedrock for deeper analysis' : 'Configure AWS credentials in Settings first';
 }
 
 function closeTranscriptModal() {
@@ -1849,7 +1902,7 @@ async function runParse(mode) {
 
     aiBtn.disabled = false;
     aiBtn.textContent = 'Parse with AI';
-    if (!localStorage.getItem(CLAUDE_KEY_STORAGE)) { aiBtn.disabled = true; }
+    if (!localStorage.getItem(AWS_ACCESS_KEY_STORE)) { aiBtn.disabled = true; }
 
     if (result.error) { showToast(result.error, 'error'); return; }
 
@@ -1966,7 +2019,9 @@ function openSettings() {
   document.getElementById('settingsOverlay').classList.add('open');
   document.getElementById('supabaseUrl').value = localStorage.getItem(SUPABASE_URL_KEY) || '';
   document.getElementById('supabaseKey').value = localStorage.getItem(SUPABASE_ANON_KEY_STORE) || '';
-  document.getElementById('claudeKey').value = localStorage.getItem(CLAUDE_KEY_STORAGE) || '';
+  document.getElementById('awsAccessKey').value = localStorage.getItem(AWS_ACCESS_KEY_STORE) || '';
+  document.getElementById('awsSecretKey').value = localStorage.getItem(AWS_SECRET_KEY_STORE) || '';
+  document.getElementById('awsRegion').value = localStorage.getItem(AWS_REGION_STORE) || '';
   const statusEl = document.getElementById('settingsStatus');
   statusEl.innerHTML = sb
     ? '<span class="settings-status connected">Connected to Supabase</span>'
@@ -1977,11 +2032,15 @@ function closeSettings() { document.getElementById('settingsOverlay').classList.
 async function saveSettings() {
   const url = document.getElementById('supabaseUrl').value.trim();
   const anon = document.getElementById('supabaseKey').value.trim();
-  const claude = document.getElementById('claudeKey').value.trim();
+  const awsAccess = document.getElementById('awsAccessKey').value.trim();
+  const awsSecret = document.getElementById('awsSecretKey').value.trim();
+  const awsRegion = document.getElementById('awsRegion').value.trim();
 
   if (url) localStorage.setItem(SUPABASE_URL_KEY, url); else localStorage.removeItem(SUPABASE_URL_KEY);
   if (anon) localStorage.setItem(SUPABASE_ANON_KEY_STORE, anon); else localStorage.removeItem(SUPABASE_ANON_KEY_STORE);
-  if (claude) localStorage.setItem(CLAUDE_KEY_STORAGE, claude); else localStorage.removeItem(CLAUDE_KEY_STORAGE);
+  if (awsAccess) localStorage.setItem(AWS_ACCESS_KEY_STORE, awsAccess); else localStorage.removeItem(AWS_ACCESS_KEY_STORE);
+  if (awsSecret) localStorage.setItem(AWS_SECRET_KEY_STORE, awsSecret); else localStorage.removeItem(AWS_SECRET_KEY_STORE);
+  if (awsRegion) localStorage.setItem(AWS_REGION_STORE, awsRegion); else localStorage.removeItem(AWS_REGION_STORE);
 
   const connected = initSupabase();
   if (connected) {
