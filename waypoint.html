@@ -1727,28 +1727,38 @@ async function signBedrockRequest(method, url, body, accessKey, secretKey, regio
   const dateStamp = amzDate.slice(0, 8);
   const service = 'bedrock';
   const host = u.host;
-  const path = u.pathname;
+  // Path must be URI-encoded per RFC 3986 for canonical request (encode : as %3A)
+  const path = u.pathname.split('/').map(s => encodeURIComponent(s)).join('/');
 
   const payloadHash = await sha256(body);
-  let canonicalHeaders = 'content-type:application/json\nhost:' + host + '\nx-amz-content-sha256:' + payloadHash + '\nx-amz-date:' + amzDate + '\n';
+  // Headers must be in alphabetical order for canonical request
+  let canonicalHeaders = 'content-type:application/json\nhost:' + host + '\nx-amz-content-sha256:' + payloadHash + '\nx-amz-date:' + amzDate;
   let signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
 
   if (sessionToken) {
-    canonicalHeaders += 'x-amz-security-token:' + sessionToken + '\n';
+    canonicalHeaders += '\nx-amz-security-token:' + sessionToken;
     signedHeaders += ';x-amz-security-token';
   }
 
+  // Add trailing newline after last header
+  canonicalHeaders += '\n';
+
   const canonicalRequest = method + '\n' + path + '\n\n' + canonicalHeaders + '\n' + signedHeaders + '\n' + payloadHash;
+
+  console.log('[DEBUG] Canonical Request:', canonicalRequest);
+  console.log('[DEBUG] Canonical Request Hash:', await sha256(canonicalRequest));
 
   const credentialScope = dateStamp + '/' + region + '/' + service + '/aws4_request';
   const stringToSign = 'AWS4-HMAC-SHA256\n' + amzDate + '\n' + credentialScope + '\n' + (await sha256(canonicalRequest));
+
+  console.log('[DEBUG] String to Sign:', stringToSign);
 
   const signingKey = await getSignatureKey(secretKey, dateStamp, region, service);
   const sig = [...await hmacSha256(signingKey, stringToSign)].map(b => b.toString(16).padStart(2, '0')).join('');
 
   const authHeader = 'AWS4-HMAC-SHA256 Credential=' + accessKey + '/' + credentialScope + ', SignedHeaders=' + signedHeaders + ', Signature=' + sig;
 
-  const headers = { 'content-type': 'application/json', 'host': host, 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, 'authorization': authHeader };
+  const headers = { 'content-type': 'application/json', 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, 'authorization': authHeader };
   if (sessionToken) headers['x-amz-security-token'] = sessionToken;
 
   return headers;
@@ -1758,7 +1768,9 @@ async function signBedrockRequest(method, url, body, accessKey, secretKey, regio
 async function parseTranscriptAI(rawText, participants) {
   const accessKey = (localStorage.getItem(AWS_ACCESS_KEY_STORE) || '').trim();
   const secretKey = (localStorage.getItem(AWS_SECRET_KEY_STORE) || '').trim();
-  const sessionToken = (localStorage.getItem(AWS_SESSION_TOKEN_STORE) || '').trim() || null;
+  const sessionTokenRaw = localStorage.getItem(AWS_SESSION_TOKEN_STORE);
+  console.log('[DEBUG] Session token from localStorage:', sessionTokenRaw ? sessionTokenRaw.slice(0, 30) + '...' : 'null');
+  const sessionToken = (sessionTokenRaw || '').trim() || null;
   const region = (localStorage.getItem(AWS_REGION_STORE) || 'us-east-1').trim();
   if (!accessKey || !secretKey) return { error: 'Configure AWS credentials in Settings first' };
 
@@ -1805,7 +1817,8 @@ EXTRACTION RULES:
 
   const userMessage = (participants.length > 0 ? 'Meeting participants: ' + participants.join(', ') + '\n\n' : '') + 'Transcript:\n' + rawText;
 
-  const modelId = 'anthropic.claude-sonnet-4-20250514-v1:0';
+  // Use Claude 3 Sonnet (confirmed working)
+  const modelId = 'anthropic.claude-3-sonnet-20240229-v1:0';
   const bedrockUrl = `https://bedrock-runtime.${region}.amazonaws.com/model/${modelId}/invoke`;
   const bodyStr = JSON.stringify({
     anthropic_version: 'bedrock-2023-05-31',
@@ -2066,6 +2079,8 @@ async function saveSettings() {
   const awsSecret = document.getElementById('awsSecretKey').value.trim();
   const awsSessionToken = document.getElementById('awsSessionToken').value.trim();
   const awsRegion = document.getElementById('awsRegion').value.trim();
+
+  console.log('[DEBUG] Saving session token:', awsSessionToken ? awsSessionToken.slice(0, 30) + '...' : 'empty');
 
   if (url) localStorage.setItem(SUPABASE_URL_KEY, url); else localStorage.removeItem(SUPABASE_URL_KEY);
   if (anon) localStorage.setItem(SUPABASE_ANON_KEY_STORE, anon); else localStorage.removeItem(SUPABASE_ANON_KEY_STORE);
