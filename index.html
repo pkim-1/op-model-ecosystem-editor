@@ -1575,8 +1575,30 @@
             explanationPanel.classList.add('visible');
             resizeHandle.classList.add('visible');
 
+            // Process name input
+            const nameLabel = document.createElement('label');
+            nameLabel.textContent = 'Process Name';
+            explanationPanel.appendChild(nameLabel);
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = proc.name;
+            nameInput.style.width = '100%';
+            nameInput.style.marginBottom = '1rem';
+            nameInput.style.padding = '0.5rem';
+            nameInput.style.border = '1px solid rgba(255,255,255,0.2)';
+            nameInput.style.borderRadius = '4px';
+            nameInput.style.background = 'rgba(0,0,0,0.3)';
+            nameInput.style.color = 'white';
+            nameInput.style.fontSize = '1rem';
+            nameInput.addEventListener('input', () => {
+                state.processes[index].name = nameInput.value;
+                renderProcessPills();
+            });
+            explanationPanel.appendChild(nameInput);
+
             const label = document.createElement('label');
-            label.textContent = 'Explanation for "' + proc.name + '"';
+            label.textContent = 'Explanation';
             explanationPanel.appendChild(label);
 
             const textarea = document.createElement('textarea');
