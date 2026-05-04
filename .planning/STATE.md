@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-05-04 - Completed quick task 260504-o52: Add (1) active pill glow matching sub-pill colors, (2) multi-color parent pills showing substep colors, (3) RACI matrix for team assignments to Desktop/op-model-ecosystem-editor-LATEST.html
+Last activity: 2026-05-04 - Completed quick task 260504-ohy: Replace team card dots with RACI role indicators - remove Active Tool/Connected/Core Team legend association, display RACI roles (R/A/C/I) as colored dots in team cards based on their assignments in each process
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -100,9 +100,10 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-05-04 | 260504-mbf | Sub-pill unique colors | Added 8-color cycling palette to visually distinguish sub-process pills within each parent |
 | 2026-05-04 | 260504-n0j | Color coding extension | Extended sub-pill colors to connection lines and team card highlighting for visual consistency |
 | 2026-05-04 | 260504-o52 | Active pill glow + parent colors + RACI | Color-matched active sub-pill glow, multi-color parent pill indicators, RACI role selector for team assignments |
+| 2026-05-04 | 260504-ohy | RACI dots in team cards | Replaced static green dots with dynamic RACI role indicators, updated legend from Active Tool/Connected/Core Team to R/A/C/I roles |
 
 ## Session Continuity
 
 Last session: 2026-05-04
-Stopped at: Completed quick-260504-o52
+Stopped at: Completed quick-260504-ohy
 Resume file: None
