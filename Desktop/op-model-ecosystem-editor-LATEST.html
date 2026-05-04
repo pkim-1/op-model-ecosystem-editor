@@ -1025,7 +1025,7 @@
         document.addEventListener('mousemove', (e) => {
             if (!resizing) return;
             const containerRect = container.getBoundingClientRect();
-            const maxWidth = containerRect.width * 0.5;
+            const maxWidth = containerRect.width * 0.333;
             const newWidth = Math.max(180, Math.min(maxWidth, e.clientX - containerRect.left));
             explanationPanel.style.width = newWidth + 'px';
             renderConnections();
@@ -2570,6 +2570,18 @@
                 applyZoom();
             }
         }, { passive: false });
+
+        // Window resize auto-adjustment with debounce
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                renderConnections();
+                if (appMode === 'present' && selectedPillIndex !== null) {
+                    showPresentExplanationPanel(selectedPillIndex, selectedSubIndex);
+                }
+            }, 150);
+        });
 
         // Initialize on load
         init();
