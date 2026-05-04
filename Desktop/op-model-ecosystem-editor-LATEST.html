@@ -2247,21 +2247,73 @@
                 hub.classList.toggle('dimmed', teamIds.size > 0);
             }
 
+            // Build per-sub-pill connection membership for parent pill color-coding
+            let subPillConnections = null;
+            if (!isSubPill) {
+                subPillConnections = new Map(); // key: "fromId-toId" (sorted), value: colorIndex
+
+                // Parent's own teams connections (neutral color)
+                const parentTeamIds = proc.teams.map(t => t.id || t);
+                for (let i = 0; i < parentTeamIds.length; i++) {
+                    for (let j = i + 1; j < parentTeamIds.length; j++) {
+                        const a = Math.min(parentTeamIds[i], parentTeamIds[j]);
+                        const bId = Math.max(parentTeamIds[i], parentTeamIds[j]);
+                        subPillConnections.set(`${a}-${bId}`, -1); // -1 = parent/neutral
+                    }
+                }
+
+                // Each child's teams connections (colored)
+                if (proc.children && proc.children.length > 0) {
+                    proc.children.forEach((child, ci) => {
+                        const childTeams = (child.teams || []).map(t => t.id || t);
+                        for (let i = 0; i < childTeams.length; i++) {
+                            for (let j = i + 1; j < childTeams.length; j++) {
+                                const a = Math.min(childTeams[i], childTeams[j]);
+                                const bId = Math.max(childTeams[i], childTeams[j]);
+                                const key = `${a}-${bId}`;
+                                if (!subPillConnections.has(key)) {
+                                    subPillConnections.set(key, ci); // first sub-pill wins
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
             // Highlight/dim connections
             svg.querySelectorAll('path').forEach(path => {
                 const connId = parseInt(path.dataset.connId);
                 const conn = state.connections.find(c => c.id === connId);
                 path.classList.remove('conn-highlighted', 'conn-dimmed');
                 path.style.stroke = '';
+                path.style.strokeWidth = '';
                 if (conn && teamIds.size > 0) {
-                    if (teamIds.has(conn.fromId) && teamIds.has(conn.toId)) {
-                        path.classList.add('conn-highlighted');
-                        if (isSubPill) {
+                    if (isSubPill) {
+                        // Sub-pill: original behavior
+                        if (teamIds.has(conn.fromId) && teamIds.has(conn.toId)) {
+                            path.classList.add('conn-highlighted');
                             path.style.setProperty('stroke', `rgba(${r}, ${g}, ${b}, 1)`, 'important');
                             path.style.setProperty('stroke-width', '3', 'important');
+                        } else {
+                            path.classList.add('conn-dimmed');
                         }
                     } else {
-                        path.classList.add('conn-dimmed');
+                        // Parent pill: only show intra-sub-pill connections, color-coded
+                        const a = Math.min(conn.fromId, conn.toId);
+                        const bId = Math.max(conn.fromId, conn.toId);
+                        const key = `${a}-${bId}`;
+                        if (subPillConnections.has(key)) {
+                            path.classList.add('conn-highlighted');
+                            const colorIdx = subPillConnections.get(key);
+                            if (colorIdx >= 0) {
+                                const [cr, cg, cb] = SUB_PILL_COLORS[colorIdx % 8];
+                                path.style.setProperty('stroke', `rgba(${cr}, ${cg}, ${cb}, 1)`, 'important');
+                                path.style.setProperty('stroke-width', '3', 'important');
+                            }
+                            // colorIdx === -1: parent-level connection, use default highlight style
+                        } else {
+                            path.classList.add('conn-dimmed');
+                        }
                     }
                 }
             });
