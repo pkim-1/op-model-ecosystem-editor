@@ -1215,20 +1215,44 @@
         const RACI_ROLE_NAMES = { R: 'Responsible', A: 'Accountable', C: 'Consulted', I: 'Informed' };
         const RACI_DOT_COLORS = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)' };
 
-        function getRaciRolesForTeam(teamId) {
+        function getRaciRolesForTeam(teamId, filterPillIndex, filterSubIndex) {
             const roles = new Set();
-            state.processes.forEach(proc => {
-                if (proc.teams) {
-                    proc.teams.forEach(t => { if (t.id === teamId && t.role) roles.add(t.role); });
+            if (filterPillIndex === null || filterPillIndex === undefined) {
+                state.processes.forEach(proc => {
+                    if (proc.teams) {
+                        proc.teams.forEach(t => { if (t.id === teamId && t.role) roles.add(t.role); });
+                    }
+                    if (proc.children) {
+                        proc.children.forEach(child => {
+                            if (child.teams) {
+                                child.teams.forEach(t => { if (t.id === teamId && t.role) roles.add(t.role); });
+                            }
+                        });
+                    }
+                });
+            } else if (filterSubIndex !== null && filterSubIndex !== undefined) {
+                const proc = state.processes[filterPillIndex];
+                if (proc && proc.children && proc.children[filterSubIndex]) {
+                    const child = proc.children[filterSubIndex];
+                    if (child.teams) {
+                        child.teams.forEach(t => { if (t.id === teamId && t.role) roles.add(t.role); });
+                    }
                 }
-                if (proc.children) {
-                    proc.children.forEach(child => {
-                        if (child.teams) {
-                            child.teams.forEach(t => { if (t.id === teamId && t.role) roles.add(t.role); });
-                        }
-                    });
+            } else {
+                const proc = state.processes[filterPillIndex];
+                if (proc) {
+                    if (proc.teams) {
+                        proc.teams.forEach(t => { if (t.id === teamId && t.role) roles.add(t.role); });
+                    }
+                    if (proc.children) {
+                        proc.children.forEach(child => {
+                            if (child.teams) {
+                                child.teams.forEach(t => { if (t.id === teamId && t.role) roles.add(t.role); });
+                            }
+                        });
+                    }
                 }
-            });
+            }
             return Array.from(roles);
         }
 
@@ -1239,7 +1263,7 @@
             el.style.left = card.x + 'px';
             el.style.top = card.y + 'px';
 
-            const roles = getRaciRolesForTeam(card.id);
+            const roles = getRaciRolesForTeam(card.id, selectedPillIndex, selectedSubIndex);
             const dotsHtml = roles.length > 0
                 ? roles.map(r => `<div class="tool-dot" style="background: ${RACI_DOT_COLORS[r]} !important;" title="${RACI_ROLE_NAMES[r] || r}"></div>`).join('')
                 : '';
@@ -1741,6 +1765,7 @@
                         collapsedPills.delete(index);
                         if (selectedPillIndex === index) { selectedPillIndex = null; selectedSubIndex = null; hideExplanationPanel(); }
                         renderProcessPills();
+                        renderCards();
                     });
                     pill.appendChild(deleteBtn);
 
@@ -1785,6 +1810,7 @@
                             showEditExplanationPanel(index);
                         }
                         renderProcessPills();
+                        renderCards();
                     });
                 } else {
                     // Present mode - parent pill click
@@ -1801,6 +1827,7 @@
                             showPresentExplanationPanel(index);
                         }
                         renderProcessPills();
+                        renderCards();
                     });
                 }
 
@@ -1850,6 +1877,7 @@
                             deriveConnections();
                             renderConnections();
                             renderProcessPills();
+                            renderCards();
                         });
                         subPill.appendChild(subDeleteBtn);
 
@@ -1893,6 +1921,7 @@
                                 showEditExplanationPanel(index, subIdx);
                             }
                             renderProcessPills();
+                            renderCards();
                         });
                     } else {
                         // Present mode - sub-pill click
@@ -1908,6 +1937,7 @@
                                 showPresentExplanationPanel(index, subIdx);
                             }
                             renderProcessPills();
+                            renderCards();
                         });
                     }
 
@@ -2363,6 +2393,7 @@
             }
 
             renderProcessPills();
+            renderCards();
             // Re-render connections after layout change (flex vs default)
             requestAnimationFrame(() => renderConnections());
             showToast(appMode === 'present' ? 'Present mode' : 'Edit mode');
@@ -2377,6 +2408,7 @@
                     hideExplanationPanel();
                     // clearHighlighting is called inside hideExplanationPanel's rAF
                     renderProcessPills();
+                    renderCards();
                 }
             }
         });
