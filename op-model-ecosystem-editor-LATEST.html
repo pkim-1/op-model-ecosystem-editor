@@ -567,7 +567,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 0.4rem;
-            max-height: 100px;
+            max-height: 400px;
             overflow-y: auto;
         }
 
@@ -591,6 +591,16 @@
 
         .explanation-panel .team-check-item:hover {
             border-color: var(--pacific-blue);
+        }
+
+        .explanation-panel .team-check-item.inherited {
+            opacity: 0.5;
+            font-style: italic;
+            cursor: default;
+            border-style: dashed;
+        }
+        .explanation-panel .team-check-item.inherited:hover {
+            border-color: var(--border-subtle);
         }
 
         .explanation-panel .present-text {
@@ -1898,23 +1908,50 @@
             const checklist = document.createElement('div');
             checklist.className = 'team-checklist';
 
+            // Collect child-only teams for parent rollup display
+            const childOnlyTeams = new Set();
+            if (!isSubPill && proc.children) {
+                proc.children.forEach(child => {
+                    (child.teams || []).forEach(t => {
+                        if (!target.teams.includes(t)) childOnlyTeams.add(t);
+                    });
+                });
+            }
+
             state.cards.forEach(card => {
                 const item = document.createElement('div');
                 item.className = 'team-check-item';
-                if (target.teams.includes(card.id)) item.classList.add('selected');
+                const isDirectTeam = target.teams.includes(card.id);
+                const isInherited = childOnlyTeams.has(card.id);
+
+                if (isDirectTeam) {
+                    item.classList.add('selected');
+                } else if (isInherited) {
+                    item.classList.add('selected', 'inherited');
+                }
+
                 item.textContent = card.name;
-                item.addEventListener('click', () => {
-                    const idx = target.teams.indexOf(card.id);
-                    if (idx >= 0) {
-                        target.teams.splice(idx, 1);
-                        item.classList.remove('selected');
-                    } else {
-                        target.teams.push(card.id);
-                        item.classList.add('selected');
-                    }
-                    deriveConnections();
-                    renderConnections();
-                });
+                if (isInherited) {
+                    const sub = document.createElement('span');
+                    sub.textContent = ' (sub)';
+                    sub.style.fontSize = '0.7rem';
+                    item.appendChild(sub);
+                }
+
+                if (!isInherited) {
+                    item.addEventListener('click', () => {
+                        const idx = target.teams.indexOf(card.id);
+                        if (idx >= 0) {
+                            target.teams.splice(idx, 1);
+                            item.classList.remove('selected');
+                        } else {
+                            target.teams.push(card.id);
+                            item.classList.add('selected');
+                        }
+                        deriveConnections();
+                        renderConnections();
+                    });
+                }
                 checklist.appendChild(item);
             });
             explanationPanel.appendChild(checklist);
