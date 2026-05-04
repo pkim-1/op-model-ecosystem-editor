@@ -593,6 +593,16 @@
             border-color: var(--pacific-blue);
         }
 
+        .explanation-panel .team-check-item.inherited {
+            opacity: 0.5;
+            font-style: italic;
+            cursor: default;
+            border-style: dashed;
+        }
+        .explanation-panel .team-check-item.inherited:hover {
+            border-color: var(--border-subtle);
+        }
+
         .explanation-panel .present-text {
             font-size: 0.95rem;
             line-height: 1.5;
@@ -728,7 +738,7 @@
             padding: 0.35rem 0.9rem;
             border-radius: 14px;
             background: var(--card-bg);
-            border: 1px solid rgba(58, 63, 82, 0.7);
+            border: 1px solid transparent;
             color: var(--text-muted);
             font-size: 0.75rem;
             white-space: nowrap;
@@ -736,6 +746,15 @@
             position: relative;
             transition: border-color 0.2s;
         }
+
+        .sub-pill-color-0 { background: rgba(66, 72, 237, 0.25); border-color: rgba(66, 72, 237, 0.5); }
+        .sub-pill-color-1 { background: rgba(155, 81, 224, 0.25); border-color: rgba(155, 81, 224, 0.5); }
+        .sub-pill-color-2 { background: rgba(0, 217, 165, 0.25); border-color: rgba(0, 217, 165, 0.5); }
+        .sub-pill-color-3 { background: rgba(255, 184, 0, 0.2); border-color: rgba(255, 184, 0, 0.4); }
+        .sub-pill-color-4 { background: rgba(255, 107, 107, 0.25); border-color: rgba(255, 107, 107, 0.5); }
+        .sub-pill-color-5 { background: rgba(72, 199, 235, 0.25); border-color: rgba(72, 199, 235, 0.5); }
+        .sub-pill-color-6 { background: rgba(255, 159, 67, 0.25); border-color: rgba(255, 159, 67, 0.5); }
+        .sub-pill-color-7 { background: rgba(162, 217, 80, 0.25); border-color: rgba(162, 217, 80, 0.5); }
 
         .sub-pill:hover {
             border-color: var(--pacific-blue);
@@ -911,6 +930,17 @@
                 { name: 'Phase 3: Solutioning', explanation: '', teams: [], children: [] }
             ]
         };
+
+        const SUB_PILL_COLORS = [
+            [66, 72, 237],    // 0 - Pacific Blue
+            [155, 81, 224],   // 1 - Purple
+            [0, 217, 165],    // 2 - Teal
+            [255, 184, 0],    // 3 - Amber
+            [255, 107, 107],  // 4 - Coral
+            [72, 199, 235],   // 5 - Cyan
+            [255, 159, 67],   // 6 - Orange
+            [162, 217, 80],   // 7 - Lime
+        ];
 
         const collapsedPills = new Set();
 
@@ -1725,6 +1755,7 @@
                 proc.children.forEach((child, subIdx) => {
                     const subPill = document.createElement('span');
                     subPill.className = 'sub-pill';
+                    subPill.classList.add('sub-pill-color-' + (subIdx % 8));
                     if (appMode === 'present') subPill.classList.add('present-clickable');
                     if (selectedPillIndex === index && selectedSubIndex === subIdx) subPill.classList.add('active-pill');
                     subPill.textContent = child.name;
@@ -1898,23 +1929,50 @@
             const checklist = document.createElement('div');
             checklist.className = 'team-checklist';
 
+            // Collect child-only teams for parent rollup display
+            const childOnlyTeams = new Set();
+            if (!isSubPill && proc.children) {
+                proc.children.forEach(child => {
+                    (child.teams || []).forEach(t => {
+                        if (!target.teams.includes(t)) childOnlyTeams.add(t);
+                    });
+                });
+            }
+
             state.cards.forEach(card => {
                 const item = document.createElement('div');
                 item.className = 'team-check-item';
-                if (target.teams.includes(card.id)) item.classList.add('selected');
+                const isDirectTeam = target.teams.includes(card.id);
+                const isInherited = childOnlyTeams.has(card.id);
+
+                if (isDirectTeam) {
+                    item.classList.add('selected');
+                } else if (isInherited) {
+                    item.classList.add('selected', 'inherited');
+                }
+
                 item.textContent = card.name;
-                item.addEventListener('click', () => {
-                    const idx = target.teams.indexOf(card.id);
-                    if (idx >= 0) {
-                        target.teams.splice(idx, 1);
-                        item.classList.remove('selected');
-                    } else {
-                        target.teams.push(card.id);
-                        item.classList.add('selected');
-                    }
-                    deriveConnections();
-                    renderConnections();
-                });
+                if (isInherited) {
+                    const sub = document.createElement('span');
+                    sub.textContent = ' (sub)';
+                    sub.style.fontSize = '0.7rem';
+                    item.appendChild(sub);
+                }
+
+                if (!isInherited) {
+                    item.addEventListener('click', () => {
+                        const idx = target.teams.indexOf(card.id);
+                        if (idx >= 0) {
+                            target.teams.splice(idx, 1);
+                            item.classList.remove('selected');
+                        } else {
+                            target.teams.push(card.id);
+                            item.classList.add('selected');
+                        }
+                        deriveConnections();
+                        renderConnections();
+                    });
+                }
                 checklist.appendChild(item);
             });
             explanationPanel.appendChild(checklist);
@@ -2019,13 +2077,26 @@
                 }
             }
 
+            // Determine sub-pill color if applicable
+            let r, g, b;
+            if (isSubPill) {
+                const colorIdx = subIndex % 8;
+                [r, g, b] = SUB_PILL_COLORS[colorIdx];
+            }
+
             // Highlight/dim cards
             document.querySelectorAll('.team-card').forEach(el => {
                 const cardId = parseInt(el.dataset.id);
                 el.classList.remove('highlighted', 'dimmed');
+                el.style.borderColor = '';
+                el.style.boxShadow = '';
                 if (teamIds.size > 0) {
                     if (teamIds.has(cardId)) {
                         el.classList.add('highlighted');
+                        if (isSubPill) {
+                            el.style.borderColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                            el.style.boxShadow = `0 0 20px rgba(${r}, ${g}, ${b}, 0.5)`;
+                        }
                     } else {
                         el.classList.add('dimmed');
                     }
@@ -2043,9 +2114,13 @@
                 const connId = parseInt(path.dataset.connId);
                 const conn = state.connections.find(c => c.id === connId);
                 path.classList.remove('conn-highlighted', 'conn-dimmed');
+                path.style.stroke = '';
                 if (conn && teamIds.size > 0) {
                     if (teamIds.has(conn.fromId) && teamIds.has(conn.toId)) {
                         path.classList.add('conn-highlighted');
+                        if (isSubPill) {
+                            path.style.stroke = `rgba(${r}, ${g}, ${b}, 1)`;
+                        }
                     } else {
                         path.classList.add('conn-dimmed');
                     }
@@ -2056,11 +2131,14 @@
         function clearHighlighting() {
             document.querySelectorAll('.team-card').forEach(el => {
                 el.classList.remove('highlighted', 'dimmed');
+                el.style.borderColor = '';
+                el.style.boxShadow = '';
             });
             const hub = document.querySelector('.center-hub');
             if (hub) hub.classList.remove('dimmed');
             svg.querySelectorAll('path').forEach(path => {
                 path.classList.remove('conn-highlighted', 'conn-dimmed');
+                path.style.stroke = '';
             });
         }
 
