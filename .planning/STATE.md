@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-04-14
+Last activity: 2026-05-04 - Completed quick task 260504-hiw: Add nested sub-process pills with individual explanations and team associations
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -93,9 +93,10 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-04-14 | 260414-grn | Private repo visibility fix | Switched to authenticated `/user/repos` endpoint when token present |
 | 2026-04-14 | 260414-gzw | Card link homepage preference | Cards open `repo.homepage` (deployed tool) instead of GitHub repo when available |
 | 2026-04-14 | 260414-hk7 | GitHub Pages URL auto-construction | Cards auto-construct GitHub Pages URLs (`username.github.io/repo-name`) when homepage not set |
+| 2026-05-04 | 260504-hiw | Nested sub-process pills | Added second hierarchy level to process pills with individual explanations and team associations for sub-processes |
 
 ## Session Continuity
 
-Last session: 2026-04-20T20:33:47.201Z
-Stopped at: Completed quick-260420-lm5
+Last session: 2026-05-04
+Stopped at: Completed quick-260504-hiw
 Resume file: None
