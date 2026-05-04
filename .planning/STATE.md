@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-05-04 - Completed quick task 260504-n0j: Extend sub-pill color coding to connection lines and team highlighting
+Last activity: 2026-05-04 - Completed quick task 260504-o52: Add (1) active pill glow matching sub-pill colors, (2) multi-color parent pills showing substep colors, (3) RACI matrix for team assignments to Desktop/op-model-ecosystem-editor-LATEST.html
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -99,9 +99,10 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-05-04 | 260504-j98 | Edit mode team rollup | Parent pills now show full team rollup in edit mode with visual distinction for child-inherited teams |
 | 2026-05-04 | 260504-mbf | Sub-pill unique colors | Added 8-color cycling palette to visually distinguish sub-process pills within each parent |
 | 2026-05-04 | 260504-n0j | Color coding extension | Extended sub-pill colors to connection lines and team card highlighting for visual consistency |
+| 2026-05-04 | 260504-o52 | Active pill glow + parent colors + RACI | Color-matched active sub-pill glow, multi-color parent pill indicators, RACI role selector for team assignments |
 
 ## Session Continuity
 
 Last session: 2026-05-04
-Stopped at: Completed quick-260504-n0j
+Stopped at: Completed quick-260504-o52
 Resume file: None
