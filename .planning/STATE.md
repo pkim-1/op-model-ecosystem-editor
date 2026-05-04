@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-05-04 - Completed quick task 260504-pgo: Update level 1 process pill diagram to (1) reflect connection color coding from sub pills, and (2) only show rollup of level 2 diagrams without auto-creating connections between level 2 diagrams
+Last activity: 2026-05-04 - Completed quick task 260504-pi1: Fix duplicate RACI dots on team cards - ensure each team can only have ONE role per L2 sub-process (prevent duplicate team assignments in the same process), while L1 parent processes correctly show rollup of multiple roles from different L2 children
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -103,9 +103,10 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-05-04 | 260504-ohy | RACI dots in team cards | Replaced static green dots with dynamic RACI role indicators, updated legend from Active Tool/Connected/Core Team to R/A/C/I roles |
 | 2026-05-04 | 260504-ooh | Fix RACI dots not appearing | Added renderCards() calls after team/RACI changes so dots update immediately in edit mode |
 | 2026-05-04 | 260504-pgo | Level 1 pill color-coded connections | Parent pill connections now color-coded by sub-pill origin, only show intra-sub-pill connections (no cross-sub-pill synthesis) |
+| 2026-05-04 | 260504-pi1 | Fix duplicate RACI dots | Prevented duplicate team entries using filter() instead of splice(), added deduplication on state load |
 
 ## Session Continuity
 
 Last session: 2026-05-04
-Stopped at: Completed quick-260504-ooh
+Stopped at: Completed quick-260504-pi1
 Resume file: None
