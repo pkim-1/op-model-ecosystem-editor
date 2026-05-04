@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-05-04 - Completed quick task 260504-mbf: Add unique colors to sub-process pills for visual distinction
+Last activity: 2026-05-04 - Completed quick task 260504-n0j: Extend sub-pill color coding to connection lines and team highlighting
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -98,9 +98,10 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-05-04 | 260504-iwc | Team checklist visibility | Increased team checklist max-height from 100px to 400px for better visibility in edit mode |
 | 2026-05-04 | 260504-j98 | Edit mode team rollup | Parent pills now show full team rollup in edit mode with visual distinction for child-inherited teams |
 | 2026-05-04 | 260504-mbf | Sub-pill unique colors | Added 8-color cycling palette to visually distinguish sub-process pills within each parent |
+| 2026-05-04 | 260504-n0j | Color coding extension | Extended sub-pill colors to connection lines and team card highlighting for visual consistency |
 
 ## Session Continuity
 
 Last session: 2026-05-04
-Stopped at: Completed quick-260504-mbf
+Stopped at: Completed quick-260504-n0j
 Resume file: None
