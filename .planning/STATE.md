@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-05-04 - Completed quick task 260504-pi1: Fix duplicate RACI dots on team cards - ensure each team can only have ONE role per L2 sub-process (prevent duplicate team assignments in the same process), while L1 parent processes correctly show rollup of multiple roles from different L2 children
+Last activity: 2026-05-04 - Completed quick task 260504-psr: Fix RACI dots to be context-aware - cards should only show RACI roles for the currently selected process (if L2 sub-process selected, show only that L2's roles; if L1 parent selected, show rollup of all L2 children's roles; if nothing selected, show all roles)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -104,9 +104,10 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-05-04 | 260504-ooh | Fix RACI dots not appearing | Added renderCards() calls after team/RACI changes so dots update immediately in edit mode |
 | 2026-05-04 | 260504-pgo | Level 1 pill color-coded connections | Parent pill connections now color-coded by sub-pill origin, only show intra-sub-pill connections (no cross-sub-pill synthesis) |
 | 2026-05-04 | 260504-pi1 | Fix duplicate RACI dots | Prevented duplicate team entries using filter() instead of splice(), added deduplication on state load |
+| 2026-05-04 | 260504-psr | Context-aware RACI dots | Cards now filter RACI dots based on selected process (L2 shows only that sub-process, L1 shows rollup, no selection shows all) |
 
 ## Session Continuity
 
 Last session: 2026-05-04
-Stopped at: Completed quick-260504-pi1
+Stopped at: Completed quick-260504-psr
 Resume file: None
