@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-05-04 - Completed quick task 260504-i4d: Make level 1 process pills show rollup of all child teams while keeping explanations independent
+Last activity: 2026-05-04 - Completed quick task 260504-iwc: Increase team checklist visibility in edit mode explanation panel
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -95,9 +95,10 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-04-14 | 260414-hk7 | GitHub Pages URL auto-construction | Cards auto-construct GitHub Pages URLs (`username.github.io/repo-name`) when homepage not set |
 | 2026-05-04 | 260504-hiw | Nested sub-process pills | Added second hierarchy level to process pills with individual explanations and team associations for sub-processes |
 | 2026-05-04 | 260504-i4d | Parent pill team rollup | Modified parent process pills to highlight rollup of all child teams, explanations stay independent |
+| 2026-05-04 | 260504-iwc | Team checklist visibility | Increased team checklist max-height from 100px to 400px for better visibility in edit mode |
 
 ## Session Continuity
 
 Last session: 2026-05-04
-Stopped at: Completed quick-260504-i4d
+Stopped at: Completed quick-260504-iwc
 Resume file: None
