@@ -603,6 +603,20 @@
             border-color: var(--border-subtle);
         }
 
+        .raci-badge {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-align: center;
+            line-height: 18px;
+            margin-left: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+
         .explanation-panel .present-text {
             font-size: 0.95rem;
             line-height: 1.5;
@@ -945,6 +959,14 @@
 
         const collapsedPills = new Set();
 
+        function migrateTeams(teams) {
+            if (!teams || teams.length === 0) return [];
+            return teams.map(t => {
+                if (typeof t === 'object' && t.id !== undefined) return t;
+                return { id: t, role: 'R' };
+            });
+        }
+
         function migrateProcesses(processes) {
             if (!processes || processes.length === 0) return state.processes;
             return processes.map(p => {
@@ -954,9 +976,9 @@
                 const children = (p.children || []).map(c => ({
                     name: c.name || 'Untitled',
                     explanation: c.explanation || '',
-                    teams: c.teams || []
+                    teams: migrateTeams(c.teams || [])
                 }));
-                return { name: p.name || 'Untitled', explanation: p.explanation || '', teams: p.teams || [], children };
+                return { name: p.name || 'Untitled', explanation: p.explanation || '', teams: migrateTeams(p.teams || []), children };
             });
         }
 
@@ -1130,23 +1152,23 @@
 
         // Derive connections from process pill team assignments (including children)
         function deriveConnections() {
-            // Collect all team arrays (parent + children)
-            const allTeamArrays = [];
+            // Collect all team arrays (parent + children), extract IDs from objects
+            const allTeamIdArrays = [];
             state.processes.forEach(proc => {
-                allTeamArrays.push(proc.teams);
+                allTeamIdArrays.push(proc.teams.map(t => t.id || t));
                 (proc.children || []).forEach(child => {
-                    allTeamArrays.push(child.teams);
+                    allTeamIdArrays.push((child.teams || []).map(t => t.id || t));
                 });
             });
 
-            const anyTeamsAssigned = allTeamArrays.some(t => t.length > 0);
+            const anyTeamsAssigned = allTeamIdArrays.some(t => t.length > 0);
             if (!anyTeamsAssigned) return; // Keep existing connections (defaultConnections fallback)
 
             const connectionSet = new Set();
             const connections = [];
             let connId = 1;
 
-            allTeamArrays.forEach(teams => {
+            allTeamIdArrays.forEach(teams => {
                 for (let i = 0; i < teams.length; i++) {
                     for (let j = i + 1; j < teams.length; j++) {
                         const a = Math.min(teams[i], teams[j]);
@@ -1467,10 +1489,10 @@
             state.cards = state.cards.filter(c => c.id !== cardId);
             // Remove card from all process pill team assignments (parent + children)
             state.processes.forEach(proc => {
-                const idx = proc.teams.indexOf(cardId);
+                const idx = proc.teams.findIndex(t => t.id === cardId);
                 if (idx >= 0) proc.teams.splice(idx, 1);
                 (proc.children || []).forEach(child => {
-                    const cIdx = child.teams.indexOf(cardId);
+                    const cIdx = (child.teams || []).findIndex(t => t.id === cardId);
                     if (cIdx >= 0) child.teams.splice(cIdx, 1);
                 });
             });
@@ -1953,15 +1975,20 @@
             if (!isSubPill && proc.children) {
                 proc.children.forEach(child => {
                     (child.teams || []).forEach(t => {
-                        if (!target.teams.includes(t)) childOnlyTeams.add(t);
+                        const tid = t.id || t;
+                        if (!target.teams.some(x => x.id === tid)) childOnlyTeams.add(tid);
                     });
                 });
             }
 
+            const RACI_ROLES = ['R', 'A', 'C', 'I'];
+            const RACI_COLORS = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)' };
+
             state.cards.forEach(card => {
                 const item = document.createElement('div');
                 item.className = 'team-check-item';
-                const isDirectTeam = target.teams.includes(card.id);
+                const teamEntry = target.teams.find(t => t.id === card.id);
+                const isDirectTeam = !!teamEntry;
                 const isInherited = childOnlyTeams.has(card.id);
 
                 if (isDirectTeam) {
@@ -1970,7 +1997,10 @@
                     item.classList.add('selected', 'inherited');
                 }
 
-                item.textContent = card.name;
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = card.name;
+                item.appendChild(nameSpan);
+
                 if (isInherited) {
                     const sub = document.createElement('span');
                     sub.textContent = ' (sub)';
@@ -1978,16 +2008,48 @@
                     item.appendChild(sub);
                 }
 
+                // RACI badge for direct teams
+                const renderBadge = () => {
+                    const existing = item.querySelector('.raci-badge');
+                    if (existing) existing.remove();
+                    const entry = target.teams.find(t => t.id === card.id);
+                    if (entry) {
+                        const badge = document.createElement('span');
+                        badge.className = 'raci-badge';
+                        badge.textContent = entry.role;
+                        badge.style.background = RACI_COLORS[entry.role];
+                        badge.style.color = entry.role === 'I' ? 'var(--text-light)' : 'var(--bg-dark)';
+                        badge.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const currentIdx = RACI_ROLES.indexOf(entry.role);
+                            if (currentIdx === RACI_ROLES.length - 1) {
+                                // Remove assignment
+                                const idx = target.teams.findIndex(t => t.id === card.id);
+                                target.teams.splice(idx, 1);
+                                item.classList.remove('selected');
+                            } else {
+                                entry.role = RACI_ROLES[currentIdx + 1];
+                            }
+                            renderBadge();
+                            deriveConnections();
+                            renderConnections();
+                        });
+                        item.appendChild(badge);
+                    }
+                };
+                renderBadge();
+
                 if (!isInherited) {
                     item.addEventListener('click', () => {
-                        const idx = target.teams.indexOf(card.id);
+                        const idx = target.teams.findIndex(t => t.id === card.id);
                         if (idx >= 0) {
                             target.teams.splice(idx, 1);
                             item.classList.remove('selected');
                         } else {
-                            target.teams.push(card.id);
+                            target.teams.push({ id: card.id, role: 'R' });
                             item.classList.add('selected');
                         }
+                        renderBadge();
                         deriveConnections();
                         renderConnections();
                     });
@@ -2058,6 +2120,29 @@
                 panelLeft.appendChild(text);
             }
 
+            // Show associated teams with RACI roles
+            if (target.teams && target.teams.length > 0) {
+                const teamList = document.createElement('div');
+                teamList.style.cssText = 'margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.4rem;';
+                const RACI_COLORS_PRESENT = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)' };
+                target.teams.forEach(t => {
+                    const entry = (typeof t === 'object') ? t : { id: t, role: 'R' };
+                    const card = state.cards.find(c => c.id === entry.id);
+                    if (!card) return;
+                    const chip = document.createElement('span');
+                    chip.style.cssText = 'font-size:0.75rem; padding:0.2rem 0.5rem; border-radius:4px; background:var(--card-bg); border:1px solid var(--border-subtle); display:inline-flex; align-items:center; gap:4px;';
+                    chip.textContent = card.name;
+                    const badge = document.createElement('span');
+                    badge.className = 'raci-badge';
+                    badge.textContent = entry.role;
+                    badge.style.background = RACI_COLORS_PRESENT[entry.role] || 'var(--text-muted)';
+                    badge.style.color = entry.role === 'I' ? 'var(--text-light)' : 'var(--bg-dark)';
+                    chip.appendChild(badge);
+                    teamList.appendChild(chip);
+                });
+                panelLeft.appendChild(teamList);
+            }
+
             explanationPanel.appendChild(panelLeft);
 
             // Re-render connections after layout reflow, then apply highlighting
@@ -2086,14 +2171,14 @@
             let teamIds;
             if (isSubPill) {
                 // Child pill: only that child's teams
-                teamIds = new Set(proc.children[subIndex].teams);
+                teamIds = new Set(proc.children[subIndex].teams.map(t => t.id || t));
             } else {
                 // Parent pill: rollup of parent teams + all children's teams
-                teamIds = new Set(proc.teams);
+                teamIds = new Set(proc.teams.map(t => t.id || t));
                 if (proc.children && proc.children.length > 0) {
                     proc.children.forEach(child => {
                         if (child.teams) {
-                            child.teams.forEach(t => teamIds.add(t));
+                            child.teams.forEach(t => teamIds.add(t.id || t));
                         }
                     });
                 }
