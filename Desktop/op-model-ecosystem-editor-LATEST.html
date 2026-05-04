@@ -673,8 +673,8 @@
 
         /* Present mode pill styling */
         .process-pill.active-pill {
-            border-color: var(--accent-yellow);
-            background: rgba(255, 184, 0, 0.15);
+            border-color: var(--active-color, var(--accent-yellow));
+            background: var(--active-bg, rgba(255, 184, 0, 0.15));
         }
 
         .process-pill.present-clickable {
@@ -762,9 +762,10 @@
         }
 
         .sub-pill.active-pill {
-            border-color: var(--accent-yellow);
-            background: rgba(255, 184, 0, 0.15);
+            border-color: var(--active-color, var(--accent-yellow)) !important;
+            background: var(--active-bg, rgba(255, 184, 0, 0.15)) !important;
             color: var(--text-light);
+            box-shadow: 0 0 8px var(--active-color, var(--accent-yellow));
         }
 
         .sub-pill .pill-delete {
@@ -1746,6 +1747,19 @@
                     });
                 }
 
+                if (proc.children.length > 0) {
+                    const colorBar = document.createElement('span');
+                    colorBar.className = 'parent-color-dots';
+                    colorBar.style.cssText = 'display:inline-flex; gap:3px; margin-left:8px; vertical-align:middle;';
+                    proc.children.forEach((child, ci) => {
+                        const dot = document.createElement('span');
+                        const [r, g, b] = SUB_PILL_COLORS[ci % 8];
+                        dot.style.cssText = `width:6px; height:6px; border-radius:50%; background:rgb(${r},${g},${b}); display:inline-block;`;
+                        colorBar.appendChild(dot);
+                    });
+                    pill.appendChild(colorBar);
+                }
+
                 group.appendChild(pill);
 
                 // Sub-pill row
@@ -1757,7 +1771,12 @@
                     subPill.className = 'sub-pill';
                     subPill.classList.add('sub-pill-color-' + (subIdx % 8));
                     if (appMode === 'present') subPill.classList.add('present-clickable');
-                    if (selectedPillIndex === index && selectedSubIndex === subIdx) subPill.classList.add('active-pill');
+                    if (selectedPillIndex === index && selectedSubIndex === subIdx) {
+                        subPill.classList.add('active-pill');
+                        const [r, g, b] = SUB_PILL_COLORS[subIdx % 8];
+                        subPill.style.setProperty('--active-color', `rgba(${r}, ${g}, ${b}, 0.8)`);
+                        subPill.style.setProperty('--active-bg', `rgba(${r}, ${g}, ${b}, 0.2)`);
+                    }
                     subPill.textContent = child.name;
 
                     if (appMode === 'edit') {
