@@ -965,10 +965,16 @@
 
         function migrateTeams(teams) {
             if (!teams || teams.length === 0) return [];
-            return teams.map(t => {
+            const migrated = teams.map(t => {
                 if (typeof t === 'object' && t.id !== undefined) return t;
                 return { id: t, role: 'R' };
             });
+            // Deduplicate: keep last entry per team id
+            const seen = new Map();
+            for (const entry of migrated) {
+                seen.set(entry.id, entry);
+            }
+            return Array.from(seen.values());
         }
 
         function migrateProcesses(processes) {
@@ -2052,9 +2058,8 @@
                             e.stopPropagation();
                             const currentIdx = RACI_ROLES.indexOf(entry.role);
                             if (currentIdx === RACI_ROLES.length - 1) {
-                                // Remove assignment
-                                const idx = target.teams.findIndex(t => t.id === card.id);
-                                target.teams.splice(idx, 1);
+                                // Remove ALL entries for this team
+                                target.teams = target.teams.filter(t => t.id !== card.id);
                                 item.classList.remove('selected');
                             } else {
                                 entry.role = RACI_ROLES[currentIdx + 1];
@@ -2073,7 +2078,8 @@
                     item.addEventListener('click', () => {
                         const idx = target.teams.findIndex(t => t.id === card.id);
                         if (idx >= 0) {
-                            target.teams.splice(idx, 1);
+                            // Remove ALL entries for this team (not just first)
+                            target.teams = target.teams.filter(t => t.id !== card.id);
                             item.classList.remove('selected');
                         } else {
                             target.teams.push({ id: card.id, role: 'R' });
