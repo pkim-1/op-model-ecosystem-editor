@@ -1097,21 +1097,29 @@
             });
         }
 
-        // Derive connections from process pill team assignments
+        // Derive connections from process pill team assignments (including children)
         function deriveConnections() {
-            // Check if any process has teams assigned
-            const anyTeamsAssigned = state.processes.some(proc => proc.teams.length > 0);
+            // Collect all team arrays (parent + children)
+            const allTeamArrays = [];
+            state.processes.forEach(proc => {
+                allTeamArrays.push(proc.teams);
+                (proc.children || []).forEach(child => {
+                    allTeamArrays.push(child.teams);
+                });
+            });
+
+            const anyTeamsAssigned = allTeamArrays.some(t => t.length > 0);
             if (!anyTeamsAssigned) return; // Keep existing connections (defaultConnections fallback)
 
             const connectionSet = new Set();
             const connections = [];
             let connId = 1;
 
-            state.processes.forEach(proc => {
-                for (let i = 0; i < proc.teams.length; i++) {
-                    for (let j = i + 1; j < proc.teams.length; j++) {
-                        const a = Math.min(proc.teams[i], proc.teams[j]);
-                        const b = Math.max(proc.teams[i], proc.teams[j]);
+            allTeamArrays.forEach(teams => {
+                for (let i = 0; i < teams.length; i++) {
+                    for (let j = i + 1; j < teams.length; j++) {
+                        const a = Math.min(teams[i], teams[j]);
+                        const b = Math.max(teams[i], teams[j]);
                         const key = `${a}-${b}`;
                         if (!connectionSet.has(key)) {
                             connectionSet.add(key);
@@ -1426,10 +1434,14 @@
         // Delete card
         function deleteCard(cardId) {
             state.cards = state.cards.filter(c => c.id !== cardId);
-            // Remove card from all process pill team assignments
+            // Remove card from all process pill team assignments (parent + children)
             state.processes.forEach(proc => {
                 const idx = proc.teams.indexOf(cardId);
                 if (idx >= 0) proc.teams.splice(idx, 1);
+                (proc.children || []).forEach(child => {
+                    const cIdx = child.teams.indexOf(cardId);
+                    if (cIdx >= 0) child.teams.splice(cIdx, 1);
+                });
             });
             const el = canvas.querySelector(`[data-id="${cardId}"]`);
             if (el) el.remove();
@@ -1604,11 +1616,32 @@
         function renderProcessPills() {
             processBar.innerHTML = '';
             state.processes.forEach((proc, index) => {
+                const group = document.createElement('div');
+                group.className = 'process-pill-group';
+                if (collapsedPills.has(index)) group.classList.add('collapsed');
+
                 const pill = document.createElement('span');
                 pill.className = 'process-pill';
                 if (appMode === 'present') pill.classList.add('present-clickable');
-                if (selectedPillIndex === index) pill.classList.add('active-pill');
+                if (selectedPillIndex === index && selectedSubIndex === null) pill.classList.add('active-pill');
                 pill.textContent = proc.name;
+
+                // Expand/collapse toggle when children exist or in edit mode
+                if (proc.children.length > 0 || appMode === 'edit') {
+                    const toggle = document.createElement('span');
+                    toggle.className = 'expand-toggle';
+                    toggle.textContent = collapsedPills.has(index) ? '\u25B6' : '\u25BC';
+                    toggle.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (collapsedPills.has(index)) {
+                            collapsedPills.delete(index);
+                        } else {
+                            collapsedPills.add(index);
+                        }
+                        renderProcessPills();
+                    });
+                    pill.appendChild(toggle);
+                }
 
                 if (appMode === 'edit') {
                     const deleteBtn = document.createElement('span');
@@ -1617,7 +1650,8 @@
                     deleteBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         state.processes.splice(index, 1);
-                        if (selectedPillIndex === index) { selectedPillIndex = null; hideExplanationPanel(); }
+                        collapsedPills.delete(index);
+                        if (selectedPillIndex === index) { selectedPillIndex = null; selectedSubIndex = null; hideExplanationPanel(); }
                         renderProcessPills();
                     });
                     pill.appendChild(deleteBtn);
@@ -1651,33 +1685,144 @@
 
                     pill.addEventListener('click', (e) => {
                         if (pill.getAttribute('contenteditable') === 'true') return;
+                        if (e.target.classList.contains('expand-toggle')) return;
                         e.stopPropagation();
-                        selectedPillIndex = (selectedPillIndex === index) ? null : index;
-                        renderProcessPills();
-                        if (selectedPillIndex !== null) {
-                            showEditExplanationPanel(index);
-                        } else {
-                            hideExplanationPanel();
-                        }
-                    });
-                } else {
-                    // Present mode
-                    pill.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (selectedPillIndex === index) {
+                        if (selectedPillIndex === index && selectedSubIndex === null) {
                             selectedPillIndex = null;
+                            selectedSubIndex = null;
                             hideExplanationPanel();
-                            // clearHighlighting is called inside hideExplanationPanel's rAF
                         } else {
                             selectedPillIndex = index;
+                            selectedSubIndex = null;
+                            showEditExplanationPanel(index);
+                        }
+                        renderProcessPills();
+                    });
+                } else {
+                    // Present mode - parent pill click
+                    pill.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('expand-toggle')) return;
+                        e.stopPropagation();
+                        if (selectedPillIndex === index && selectedSubIndex === null) {
+                            selectedPillIndex = null;
+                            selectedSubIndex = null;
+                            hideExplanationPanel();
+                        } else {
+                            selectedPillIndex = index;
+                            selectedSubIndex = null;
                             showPresentExplanationPanel(index);
-                            // highlightTeamsForPill is called inside showPresentExplanationPanel's rAF
                         }
                         renderProcessPills();
                     });
                 }
 
-                processBar.appendChild(pill);
+                group.appendChild(pill);
+
+                // Sub-pill row
+                const subRow = document.createElement('div');
+                subRow.className = 'sub-pill-row';
+
+                proc.children.forEach((child, subIdx) => {
+                    const subPill = document.createElement('span');
+                    subPill.className = 'sub-pill';
+                    if (appMode === 'present') subPill.classList.add('present-clickable');
+                    if (selectedPillIndex === index && selectedSubIndex === subIdx) subPill.classList.add('active-pill');
+                    subPill.textContent = child.name;
+
+                    if (appMode === 'edit') {
+                        const subDeleteBtn = document.createElement('span');
+                        subDeleteBtn.className = 'pill-delete';
+                        subDeleteBtn.textContent = '\u00d7';
+                        subDeleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            proc.children.splice(subIdx, 1);
+                            if (selectedPillIndex === index && selectedSubIndex === subIdx) {
+                                selectedSubIndex = null;
+                                hideExplanationPanel();
+                            }
+                            deriveConnections();
+                            renderConnections();
+                            renderProcessPills();
+                        });
+                        subPill.appendChild(subDeleteBtn);
+
+                        subPill.addEventListener('dblclick', (e) => {
+                            e.stopPropagation();
+                            subPill.setAttribute('contenteditable', 'true');
+                            subPill.focus();
+                            const range = document.createRange();
+                            range.selectNodeContents(subPill);
+                            if (subPill.firstChild && subPill.firstChild.nodeType === 3) {
+                                range.setEnd(subPill.firstChild, subPill.firstChild.textContent.length);
+                            }
+                            const sel = window.getSelection();
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+
+                            const finishEdit = () => {
+                                subPill.removeAttribute('contenteditable');
+                                const newText = subPill.firstChild?.textContent?.trim() || 'Untitled';
+                                proc.children[subIdx].name = newText;
+                                renderProcessPills();
+                            };
+                            const handleKey = (ev) => {
+                                if (ev.key === 'Enter') { ev.preventDefault(); finishEdit(); }
+                                else if (ev.key === 'Escape') { renderProcessPills(); }
+                            };
+                            subPill.addEventListener('blur', finishEdit, { once: true });
+                            subPill.addEventListener('keydown', handleKey);
+                        });
+
+                        subPill.addEventListener('click', (e) => {
+                            if (subPill.getAttribute('contenteditable') === 'true') return;
+                            e.stopPropagation();
+                            if (selectedPillIndex === index && selectedSubIndex === subIdx) {
+                                selectedPillIndex = null;
+                                selectedSubIndex = null;
+                                hideExplanationPanel();
+                            } else {
+                                selectedPillIndex = index;
+                                selectedSubIndex = subIdx;
+                                showEditExplanationPanel(index, subIdx);
+                            }
+                            renderProcessPills();
+                        });
+                    } else {
+                        // Present mode - sub-pill click
+                        subPill.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            if (selectedPillIndex === index && selectedSubIndex === subIdx) {
+                                selectedPillIndex = null;
+                                selectedSubIndex = null;
+                                hideExplanationPanel();
+                            } else {
+                                selectedPillIndex = index;
+                                selectedSubIndex = subIdx;
+                                showPresentExplanationPanel(index, subIdx);
+                            }
+                            renderProcessPills();
+                        });
+                    }
+
+                    subRow.appendChild(subPill);
+                });
+
+                // Add Sub-step button in edit mode
+                if (appMode === 'edit') {
+                    const addSubBtn = document.createElement('button');
+                    addSubBtn.className = 'add-sub-pill-btn';
+                    addSubBtn.textContent = '+ sub';
+                    addSubBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        proc.children.push({ name: 'New Step', explanation: '', teams: [] });
+                        if (collapsedPills.has(index)) collapsedPills.delete(index);
+                        renderProcessPills();
+                    });
+                    subRow.appendChild(addSubBtn);
+                }
+
+                group.appendChild(subRow);
+                processBar.appendChild(group);
             });
 
             if (appMode === 'edit') {
@@ -1693,20 +1838,23 @@
         }
 
         // Explanation Panel - Edit Mode
-        function showEditExplanationPanel(index) {
+        function showEditExplanationPanel(index, subIndex) {
             const proc = state.processes[index];
+            const target = (subIndex !== undefined && subIndex !== null) ? proc.children[subIndex] : proc;
+            const isSubPill = (subIndex !== undefined && subIndex !== null);
             explanationPanel.innerHTML = '';
             explanationPanel.classList.add('visible');
             resizeHandle.classList.add('visible');
 
-            // Process name input
-            const nameLabel = document.createElement('label');
-            nameLabel.textContent = 'Process Name';
-            explanationPanel.appendChild(nameLabel);
+            // Header label
+            const headerLabel = document.createElement('label');
+            headerLabel.textContent = isSubPill ? 'Sub-Process Step' : 'Process Name';
+            headerLabel.style.color = isSubPill ? 'var(--accent-green)' : 'var(--text-muted)';
+            explanationPanel.appendChild(headerLabel);
 
             const nameInput = document.createElement('input');
             nameInput.type = 'text';
-            nameInput.value = proc.name;
+            nameInput.value = target.name;
             nameInput.style.width = '100%';
             nameInput.style.marginBottom = '1rem';
             nameInput.style.padding = '0.5rem';
@@ -1716,21 +1864,30 @@
             nameInput.style.color = 'white';
             nameInput.style.fontSize = '1rem';
             nameInput.addEventListener('input', () => {
-                state.processes[index].name = nameInput.value;
+                target.name = nameInput.value;
                 renderProcessPills();
             });
             explanationPanel.appendChild(nameInput);
+
+            if (isSubPill) {
+                const parentNote = document.createElement('div');
+                parentNote.style.fontSize = '0.75rem';
+                parentNote.style.color = 'var(--text-muted)';
+                parentNote.style.marginBottom = '0.5rem';
+                parentNote.textContent = 'Parent: ' + proc.name;
+                explanationPanel.appendChild(parentNote);
+            }
 
             const label = document.createElement('label');
             label.textContent = 'Explanation';
             explanationPanel.appendChild(label);
 
             const textarea = document.createElement('textarea');
-            textarea.value = proc.explanation;
-            textarea.placeholder = 'Describe what happens in this phase...';
+            textarea.value = target.explanation;
+            textarea.placeholder = isSubPill ? 'Describe this sub-step...' : 'Describe what happens in this phase...';
             textarea.style.width = '100%';
             textarea.addEventListener('input', () => {
-                state.processes[index].explanation = textarea.value;
+                target.explanation = textarea.value;
             });
             explanationPanel.appendChild(textarea);
 
@@ -1744,15 +1901,15 @@
             state.cards.forEach(card => {
                 const item = document.createElement('div');
                 item.className = 'team-check-item';
-                if (proc.teams.includes(card.id)) item.classList.add('selected');
+                if (target.teams.includes(card.id)) item.classList.add('selected');
                 item.textContent = card.name;
                 item.addEventListener('click', () => {
-                    const idx = proc.teams.indexOf(card.id);
+                    const idx = target.teams.indexOf(card.id);
                     if (idx >= 0) {
-                        proc.teams.splice(idx, 1);
+                        target.teams.splice(idx, 1);
                         item.classList.remove('selected');
                     } else {
-                        proc.teams.push(card.id);
+                        target.teams.push(card.id);
                         item.classList.add('selected');
                     }
                     deriveConnections();
@@ -1762,13 +1919,31 @@
             });
             explanationPanel.appendChild(checklist);
 
+            // Add Sub-step button at bottom of parent panel
+            if (!isSubPill) {
+                const addSubBtn = document.createElement('button');
+                addSubBtn.className = 'add-sub-pill-btn';
+                addSubBtn.style.marginTop = '1rem';
+                addSubBtn.style.alignSelf = 'flex-start';
+                addSubBtn.textContent = '+ Add Sub-step';
+                addSubBtn.addEventListener('click', () => {
+                    proc.children.push({ name: 'New Step', explanation: '', teams: [] });
+                    if (collapsedPills.has(index)) collapsedPills.delete(index);
+                    renderProcessPills();
+                    showEditExplanationPanel(index);
+                });
+                explanationPanel.appendChild(addSubBtn);
+            }
+
             // Re-render connections after sidebar appears
             requestAnimationFrame(() => renderConnections());
         }
 
         // Explanation Panel - Present Mode
-        function showPresentExplanationPanel(index) {
+        function showPresentExplanationPanel(index, subIndex) {
             const proc = state.processes[index];
+            const isSubPill = (subIndex !== undefined && subIndex !== null);
+            const target = isSubPill ? proc.children[subIndex] : proc;
             explanationPanel.innerHTML = '';
             explanationPanel.classList.add('visible');
             resizeHandle.classList.add('visible');
@@ -1776,15 +1951,24 @@
             const panelLeft = document.createElement('div');
             panelLeft.className = 'panel-left';
 
+            if (isSubPill) {
+                const parentNote = document.createElement('div');
+                parentNote.style.fontSize = '0.75rem';
+                parentNote.style.color = 'var(--text-muted)';
+                parentNote.style.marginBottom = '0.25rem';
+                parentNote.textContent = proc.name;
+                panelLeft.appendChild(parentNote);
+            }
+
             const title = document.createElement('div');
             title.className = 'present-pill-title';
-            title.textContent = proc.name;
+            title.textContent = target.name;
             panelLeft.appendChild(title);
 
-            if (proc.explanation) {
+            if (target.explanation) {
                 const text = document.createElement('div');
                 text.className = 'present-text';
-                text.textContent = proc.explanation;
+                text.textContent = target.explanation;
                 panelLeft.appendChild(text);
             } else {
                 const text = document.createElement('div');
@@ -1799,7 +1983,7 @@
             // Re-render connections after layout reflow, then apply highlighting
             requestAnimationFrame(() => {
                 renderConnections();
-                highlightTeamsForPill(index);
+                highlightTeamsForPill(index, subIndex);
             });
         }
 
@@ -1816,9 +2000,11 @@
         }
 
         // Present mode highlighting
-        function highlightTeamsForPill(index) {
+        function highlightTeamsForPill(index, subIndex) {
             const proc = state.processes[index];
-            const teamIds = new Set(proc.teams);
+            const isSubPill = (subIndex !== undefined && subIndex !== null);
+            const target = isSubPill ? proc.children[subIndex] : proc;
+            const teamIds = new Set(target.teams);
 
             // Highlight/dim cards
             document.querySelectorAll('.team-card').forEach(el => {
@@ -1875,6 +2061,7 @@
 
             // Reset state
             selectedPillIndex = null;
+            selectedSubIndex = null;
             hideExplanationPanel();
             clearHighlighting();
 
@@ -1896,8 +2083,9 @@
         // Click canvas to deselect pill in present mode
         container.addEventListener('click', (e) => {
             if (appMode === 'present' && selectedPillIndex !== null) {
-                if (!e.target.closest('.process-pill') && !e.target.closest('.explanation-panel')) {
+                if (!e.target.closest('.process-pill') && !e.target.closest('.sub-pill') && !e.target.closest('.explanation-panel')) {
                     selectedPillIndex = null;
+                    selectedSubIndex = null;
                     hideExplanationPanel();
                     // clearHighlighting is called inside hideExplanationPanel's rAF
                     renderProcessPills();
