@@ -2097,8 +2097,8 @@
                     if (teamIds.has(cardId)) {
                         el.classList.add('highlighted');
                         if (isSubPill) {
-                            el.style.borderColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
-                            el.style.boxShadow = `0 0 20px rgba(${r}, ${g}, ${b}, 0.5)`;
+                            el.style.setProperty('border-color', `rgba(${r}, ${g}, ${b}, 0.8)`, 'important');
+                            el.style.setProperty('box-shadow', `0 0 20px rgba(${r}, ${g}, ${b}, 0.5)`, 'important');
                         }
                     } else {
                         el.classList.add('dimmed');
@@ -2122,7 +2122,8 @@
                     if (teamIds.has(conn.fromId) && teamIds.has(conn.toId)) {
                         path.classList.add('conn-highlighted');
                         if (isSubPill) {
-                            path.style.stroke = `rgba(${r}, ${g}, ${b}, 1)`;
+                            path.style.setProperty('stroke', `rgba(${r}, ${g}, ${b}, 1)`, 'important');
+                            path.style.setProperty('stroke-width', '3', 'important');
                         }
                     } else {
                         path.classList.add('conn-dimmed');
