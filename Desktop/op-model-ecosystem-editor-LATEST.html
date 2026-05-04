@@ -1,0 +1,2272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPA Ecosystem Editor - Interactive Canvas</title>
+    <style>
+        :root {
+            --bg-dark: #1a1d29;
+            --bg-darker: #12151f;
+            --card-bg: #252936;
+            --card-hover: #2d3142;
+            --eg-blue: #000099;
+            --pacific-blue: #4248ED;
+            --accent-yellow: #FFB800;
+            --accent-green: #00D9A5;
+            --accent-purple: #9B51E0;
+            --text-light: #E8EAF0;
+            --text-muted: #9BA3B7;
+            --border-subtle: #3a3f52;
+            --connection-line: rgba(66, 72, 237, 0.3);
+            --toolbar-bg: #0d0f17;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Centra No2', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+        }
+
+        /* Editor Toolbar */
+        .editor-toolbar {
+            background: var(--toolbar-bg);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 2px solid var(--pacific-blue);
+            z-index: 1000;
+            flex-shrink: 0;
+        }
+
+        .toolbar-brand {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent-yellow);
+            margin-right: 1.5rem;
+            white-space: nowrap;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 28px;
+            background: var(--border-subtle);
+            margin: 0 0.5rem;
+        }
+
+        .toolbar-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-light);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--card-hover);
+            border-color: var(--pacific-blue);
+        }
+
+        .toolbar-btn.active {
+            background: var(--pacific-blue);
+            border-color: var(--pacific-blue);
+            color: white;
+        }
+
+        .toolbar-btn.primary {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: var(--bg-dark);
+            font-weight: 600;
+        }
+
+        .toolbar-btn.primary:hover {
+            background: #00c494;
+        }
+
+        .toolbar-spacer {
+            flex: 1;
+        }
+
+        .mode-indicator {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            background: var(--card-bg);
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-darker);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-box {
+            padding: 0.5rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            color: var(--text-light);
+            font-size: 0.9rem;
+            width: 220px;
+        }
+
+        .search-box::placeholder {
+            color: var(--text-muted);
+        }
+
+        .tool-count {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Canvas */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: row;
+        }
+
+        /* diagram-area styled via flex layout below */
+
+        .canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        svg.connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        svg.connections path {
+            fill: none;
+            stroke: var(--connection-line);
+            stroke-width: 2;
+            pointer-events: none;
+        }
+
+        /* Center Hub */
+        .center-hub {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-yellow), #FFA000);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--bg-dark);
+            box-shadow: 0 8px 32px rgba(255, 184, 0, 0.4);
+            z-index: 10;
+            border: 3px solid var(--bg-dark);
+            cursor: grab;
+        }
+
+        .center-hub:active {
+            cursor: grabbing;
+        }
+
+        .center-hub .hub-subtitle {
+            font-size: 0.65rem;
+            font-weight: 500;
+            margin-top: 0.2rem;
+            opacity: 0.8;
+        }
+
+        .center-hub div[contenteditable="true"] {
+            outline: 2px solid var(--pacific-blue);
+            border-radius: 4px;
+            padding: 2px 6px;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: text;
+            min-width: 30px;
+        }
+
+        /* Team Cards */
+        .team-card {
+            position: absolute;
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            min-width: 140px;
+            cursor: grab;
+            transition: box-shadow 0.2s, border-color 0.2s;
+            z-index: 5;
+        }
+
+        .team-card:active {
+            cursor: grabbing;
+        }
+
+        .team-card.dragging {
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+            border-color: var(--pacific-blue);
+            z-index: 100;
+            opacity: 0.9;
+        }
+
+        .team-card:hover {
+            border-color: var(--pacific-blue);
+            box-shadow: 0 6px 20px rgba(66, 72, 237, 0.3);
+        }
+
+        .team-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+            outline: none;
+            min-width: 60px;
+        }
+
+        .team-name[contenteditable="true"] {
+            border-bottom: 1px dashed var(--accent-yellow);
+            cursor: text;
+        }
+
+        .tool-count-badge {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            outline: none;
+            min-width: 40px;
+        }
+
+        .tool-count-badge[contenteditable="true"] {
+            border-bottom: 1px dashed var(--accent-yellow);
+            cursor: text;
+        }
+
+        .team-tools {
+            display: flex;
+            gap: 4px;
+            margin-top: 0.5rem;
+        }
+
+        .tool-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+
+        .card-delete-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e74c3c;
+            border: 2px solid var(--bg-dark);
+            color: white;
+            font-size: 0.65rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 15;
+            line-height: 1;
+        }
+
+        .team-card:hover .card-delete-btn {
+            display: flex;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 0.5rem 0;
+            min-width: 160px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .context-menu-item:hover {
+            background: var(--card-hover);
+        }
+
+        .context-menu-item.danger {
+            color: #e74c3c;
+        }
+
+        .context-menu-item.danger:hover {
+            background: rgba(231, 76, 60, 0.15);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--card-bg);
+            border: 1px solid var(--accent-green);
+            color: var(--text-light);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 3000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 1rem;
+            left: 1.5rem;
+            display: flex;
+            gap: 1.5rem;
+            z-index: 20;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Process Pills Bar */
+        .process-bar {
+            background: var(--bg-darker);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+            overflow-x: auto;
+        }
+
+        .process-pill {
+            padding: 0.5rem 1.25rem;
+            border-radius: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-light);
+            font-size: 0.85rem;
+            white-space: nowrap;
+            cursor: default;
+            position: relative;
+            transition: border-color 0.2s;
+        }
+
+        .process-pill:hover {
+            border-color: var(--pacific-blue);
+        }
+
+        .process-pill[contenteditable="true"] {
+            outline: none;
+            border-color: var(--accent-yellow);
+            cursor: text;
+        }
+
+        .process-pill .pill-delete {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #e74c3c;
+            border: 2px solid var(--bg-darker);
+            color: white;
+            font-size: 0.55rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .process-pill:hover .pill-delete {
+            display: flex;
+        }
+
+        .add-pill-btn {
+            padding: 0.4rem 0.75rem;
+            border-radius: 20px;
+            background: transparent;
+            border: 1px dashed var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-pill-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        /* Mode Toggle */
+        .toolbar-btn.mode-present {
+            background: var(--accent-purple);
+            border-color: var(--accent-purple);
+            color: white;
+            font-weight: 600;
+        }
+
+        .toolbar-btn.mode-present:hover {
+            background: #8a3fd0;
+        }
+
+        /* Explanation Panel - unified sidebar for both modes */
+        .explanation-panel {
+            position: static;
+            width: var(--sidebar-width, 20%);
+            min-width: 220px;
+            max-width: 400px;
+            height: 100%;
+            z-index: 50;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 1.25rem 1.5rem;
+            border-bottom: none;
+            border-left: none;
+            border-right: 3px solid var(--accent-yellow);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: none;
+            flex-shrink: 0;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .explanation-panel.visible {
+            display: flex;
+        }
+
+        .explanation-panel .panel-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .explanation-panel .panel-right {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .explanation-panel label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .explanation-panel textarea {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            color: var(--text-light);
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .explanation-panel textarea:focus {
+            outline: none;
+            border-color: var(--pacific-blue);
+        }
+
+        .explanation-panel .team-checklist {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .explanation-panel .team-check-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .explanation-panel .team-check-item.selected {
+            border-color: var(--accent-green);
+            background: rgba(0, 217, 165, 0.1);
+        }
+
+        .explanation-panel .team-check-item:hover {
+            border-color: var(--pacific-blue);
+        }
+
+        .explanation-panel .present-text {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-light);
+            padding: 0.5rem 0;
+            text-align: left;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .explanation-panel .present-pill-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent-yellow);
+            margin-bottom: 0.25rem;
+            text-align: left;
+        }
+
+        /* Resize handle between sidebar and diagram */
+        .resize-handle {
+            width: 6px;
+            cursor: col-resize;
+            background: transparent;
+            flex-shrink: 0;
+            transition: background 0.15s;
+            display: none;
+        }
+
+        .resize-handle.visible {
+            display: block;
+        }
+
+        .resize-handle:hover,
+        .resize-handle.active {
+            background: var(--pacific-blue);
+        }
+
+        body.present-mode .resize-handle {
+            display: none !important;
+            cursor: default;
+        }
+
+        /* Present mode highlighting */
+        .team-card.highlighted {
+            border-color: var(--accent-green) !important;
+            box-shadow: 0 0 20px rgba(0, 217, 165, 0.5) !important;
+            z-index: 50;
+        }
+
+        .team-card.dimmed {
+            opacity: 0.15 !important;
+        }
+
+        .center-hub.dimmed {
+            opacity: 0.15 !important;
+        }
+
+        svg.connections path.conn-highlighted {
+            stroke: var(--accent-green) !important;
+            stroke-width: 3 !important;
+            opacity: 1 !important;
+        }
+
+        svg.connections path.conn-dimmed {
+            opacity: 0.05 !important;
+        }
+
+        /* Present mode pill styling */
+        .process-pill.active-pill {
+            border-color: var(--accent-yellow);
+            background: rgba(255, 184, 0, 0.15);
+        }
+
+        .process-pill.present-clickable {
+            cursor: pointer;
+        }
+
+        .process-pill.present-clickable:hover {
+            border-color: var(--accent-yellow);
+            background: rgba(255, 184, 0, 0.1);
+        }
+
+        /* Diagram area fills remaining space in flex layout */
+        .diagram-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Hide edit-only elements in present mode */
+        body.present-mode .card-delete-btn,
+        body.present-mode .add-pill-btn,
+        body.present-mode .pill-delete {
+            display: none !important;
+        }
+
+        body.present-mode .team-card {
+            cursor: default;
+        }
+
+        body.present-mode .center-hub {
+            cursor: default;
+        }
+
+        /* Help tooltip */
+        .help-tip {
+            position: absolute;
+            bottom: 1rem;
+            right: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            z-index: 20;
+        }
+
+        /* Nested Sub-Process Pills */
+        .process-pill-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.35rem;
+        }
+
+        .sub-pill-row {
+            display: flex;
+            gap: 0.5rem;
+            padding-left: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .sub-pill {
+            padding: 0.35rem 0.9rem;
+            border-radius: 14px;
+            background: var(--card-bg);
+            border: 1px solid rgba(58, 63, 82, 0.7);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            white-space: nowrap;
+            cursor: default;
+            position: relative;
+            transition: border-color 0.2s;
+        }
+
+        .sub-pill:hover {
+            border-color: var(--pacific-blue);
+            color: var(--text-light);
+        }
+
+        .sub-pill.active-pill {
+            border-color: var(--accent-yellow);
+            background: rgba(255, 184, 0, 0.15);
+            color: var(--text-light);
+        }
+
+        .sub-pill .pill-delete {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #e74c3c;
+            border: 2px solid var(--bg-darker);
+            color: white;
+            font-size: 0.45rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .sub-pill:hover .pill-delete {
+            display: flex;
+        }
+
+        .process-pill .expand-toggle {
+            display: inline-block;
+            margin-left: 0.4rem;
+            font-size: 0.65rem;
+            transition: transform 0.2s;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        .process-pill .expand-toggle:hover {
+            opacity: 1;
+        }
+
+        .process-pill-group.collapsed .sub-pill-row {
+            display: none;
+        }
+
+        .sub-pill.present-clickable {
+            cursor: pointer;
+        }
+
+        .sub-pill.present-clickable:hover {
+            border-color: var(--accent-yellow);
+            background: rgba(255, 184, 0, 0.1);
+            color: var(--text-light);
+        }
+
+        .add-sub-pill-btn {
+            padding: 0.25rem 0.6rem;
+            border-radius: 14px;
+            background: transparent;
+            border: 1px dashed rgba(58, 63, 82, 0.7);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-sub-pill-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        body.present-mode .add-sub-pill-btn,
+        body.present-mode .sub-pill .pill-delete {
+            display: none !important;
+        }
+
+        /* Process bar layout update for groups */
+        .process-bar {
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="editor-toolbar">
+        <div class="toolbar-brand">Ecosystem Editor</div>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" id="btnAddCard">+ Add Card</button>
+        <button class="toolbar-btn primary" id="btnSave">Save</button>
+        <button class="toolbar-btn" id="btnExportJson">Export JSON</button>
+        <button class="toolbar-btn" id="btnExportHtml">Export HTML</button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" id="btnCenter">Center</button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" id="btnZoomOut">-</button>
+        <span id="zoomDisplay" style="font-size:0.85rem;color:var(--text-light);min-width:3em;text-align:center;">100%</span>
+        <button class="toolbar-btn" id="btnZoomIn">+</button>
+        <div class="toolbar-divider"></div>
+        <button class="toolbar-btn" id="btnModeToggle">Present Mode</button>
+        <div class="toolbar-spacer"></div>
+        <div class="mode-indicator" id="modeIndicator">Mode: Select</div>
+    </div>
+
+    <div class="header">
+        <div class="header-left">
+            <div class="title">TPA Ecosystem</div>
+            <div class="subtitle">Technology & Tools Landscape</div>
+        </div>
+        <div class="header-right">
+            <input type="text" class="search-box" placeholder="Search cards..." id="searchBox">
+            <div class="tool-count" id="cardCount">0 cards</div>
+        </div>
+    </div>
+
+    <div class="process-bar" id="processBar"></div>
+
+    <div class="canvas-container" id="canvasContainer">
+        <div class="explanation-panel" id="explanationPanel"></div>
+        <div class="resize-handle" id="resizeHandle"></div>
+        <div class="diagram-area" id="diagramArea">
+            <svg class="connections" id="connectionsSvg"></svg>
+            <div class="canvas" id="canvas"></div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--accent-green);"></div>
+                    <span>Active Tool</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--pacific-blue);"></div>
+                    <span>Connected</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--accent-yellow);"></div>
+                    <span>Core Team</span>
+                </div>
+            </div>
+
+            <div class="help-tip">Double-click text to edit | Right-click for options | Delete key removes selected line</div>
+        </div>
+    </div>
+
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" data-action="edit">Edit Text</div>
+        <div class="context-menu-item" data-action="duplicate">Duplicate</div>
+        <div class="context-menu-item danger" data-action="delete">Delete Card</div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        const STORAGE_KEY = 'tpa-ecosystem-editor';
+
+        // State
+        let state = {
+            cards: [],
+            connections: [],
+            centerHub: { x: 600, y: 400, label: 'S&C', subtitle: 'Solutions & Capabilities' },
+            processes: [
+                { name: 'Entry Point', explanation: '', teams: [], children: [] },
+                { name: 'Phase 1: Formalization', explanation: '', teams: [], children: [] },
+                { name: 'Phase 2: Capability Mapping', explanation: '', teams: [], children: [] },
+                { name: 'Phase 3: Solutioning', explanation: '', teams: [], children: [] }
+            ]
+        };
+
+        const collapsedPills = new Set();
+
+        function migrateProcesses(processes) {
+            if (!processes || processes.length === 0) return state.processes;
+            return processes.map(p => {
+                if (typeof p === 'string') {
+                    return { name: p, explanation: '', teams: [], children: [] };
+                }
+                const children = (p.children || []).map(c => ({
+                    name: c.name || 'Untitled',
+                    explanation: c.explanation || '',
+                    teams: c.teams || []
+                }));
+                return { name: p.name || 'Untitled', explanation: p.explanation || '', teams: p.teams || [], children };
+            });
+        }
+
+        let nextId = 1;
+        let zoomLevel = 1;
+        const ZOOM_MIN = 0.4;
+        const ZOOM_MAX = 2.0;
+        const ZOOM_STEP = 0.1;
+        let dragging = null;
+        let dragOffset = { x: 0, y: 0 };
+        let contextMenuTarget = null;
+        let appMode = 'edit'; // 'edit' or 'present'
+        let selectedPillIndex = null;
+        let selectedSubIndex = null;
+
+        const canvas = document.getElementById('canvas');
+        const svg = document.getElementById('connectionsSvg');
+        const container = document.getElementById('canvasContainer');
+        const diagramArea = document.getElementById('diagramArea');
+        const contextMenu = document.getElementById('contextMenu');
+        const resizeHandle = document.getElementById('resizeHandle');
+
+        // Resize handle drag logic
+        let resizing = false;
+        resizeHandle.addEventListener('mousedown', (e) => {
+            if (appMode === 'present') return;
+            e.preventDefault();
+            resizing = true;
+            resizeHandle.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!resizing) return;
+            const containerRect = container.getBoundingClientRect();
+            const maxWidth = containerRect.width * 0.5;
+            const newWidth = Math.max(180, Math.min(maxWidth, e.clientX - containerRect.left));
+            explanationPanel.style.width = newWidth + 'px';
+            renderConnections();
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (resizing) {
+                resizing = false;
+                resizeHandle.classList.remove('active');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                renderConnections();
+            }
+        });
+
+        // Default card data from the original ecosystem
+        const defaultCards = [
+            { name: 'PMO', badge: 'Decision Support', x: 540, y: 40 },
+            { name: 'Andres', badge: 'ASK Review', x: 540, y: 110 },
+            { name: 'SEC Portfolio', badge: 'Prioritization', x: 540, y: 180 },
+            { name: 'Field Effectiveness', badge: 'Performance Input', x: 220, y: 80 },
+            { name: '30-Day Assessment', badge: 'Capability Review', x: 220, y: 155 },
+            { name: 'Workflow Mapping', badge: 'Process Doc', x: 120, y: 260 },
+            { name: 'Ecosystem', badge: 'Foundation', x: 120, y: 335 },
+            { name: 'Business Case', badge: 'ROI Analysis', x: 80, y: 450 },
+            { name: 'Price Modeling', badge: 'Cost Estimation', x: 80, y: 525 },
+            { name: 'Buy Teams', badge: 'Vendor Management', x: 140, y: 620 },
+            { name: 'Shopping', badge: 'Tool Selection', x: 140, y: 695 },
+            { name: 'Stakeholder Comms', badge: 'Updates', x: 290, y: 720 },
+            { name: 'Workshop', badge: 'Facilitation', x: 290, y: 795 },
+            { name: 'Capability Mapping', badge: 'Skills Matrix', x: 520, y: 800 },
+            { name: 'Problem Statements', badge: 'Definition', x: 520, y: 875 },
+            { name: 'North Star', badge: 'Vision & Metrics', x: 780, y: 720 },
+            { name: 'Measurements', badge: 'KPIs Defined', x: 780, y: 795 },
+            { name: 'S&C Lead', badge: 'Facilitation', x: 900, y: 620 },
+            { name: 'Solutioning', badge: 'Decision Workshop', x: 900, y: 695 },
+            { name: 'Build Teams', badge: 'Development', x: 980, y: 450 },
+            { name: 'Requirements', badge: 'Tech Specs', x: 980, y: 525 },
+            { name: 'P+T', badge: 'Product + Technology', x: 960, y: 280 },
+            { name: 'Delivery', badge: 'Implementation', x: 960, y: 355 },
+            { name: 'Persona', badge: 'User Identification', x: 830, y: 80 },
+            { name: 'C.UX', badge: 'Experience Mapping', x: 830, y: 155 },
+        ];
+
+        const defaultConnections = [
+            ['PMO', 'S&C Lead'], ['PMO', 'Field Effectiveness'], ['PMO', 'Buy Teams'],
+            ['Andres', 'PMO'], ['Andres', 'Field Effectiveness'],
+            ['SEC Portfolio', 'PMO'],
+            ['Field Effectiveness', 'S&C Lead'], ['Field Effectiveness', 'Buy Teams'],
+            ['30-Day Assessment', 'Field Effectiveness'], ['30-Day Assessment', 'S&C Lead'],
+            ['Workflow Mapping', 'S&C Lead'], ['Workflow Mapping', 'Field Effectiveness'],
+            ['Ecosystem', 'Build Teams'], ['Ecosystem', 'P+T'],
+            ['Business Case', 'Buy Teams'], ['Business Case', 'PMO'],
+            ['Price Modeling', 'Buy Teams'],
+            ['Buy Teams', 'S&C Lead'], ['Buy Teams', 'PMO'],
+            ['Stakeholder Comms', 'PMO'], ['Stakeholder Comms', 'Field Effectiveness'],
+            ['Stakeholder Comms', 'Buy Teams'], ['Stakeholder Comms', 'Build Teams'],
+            ['Workshop', 'S&C Lead'], ['Workshop', 'Build Teams'],
+            ['Capability Mapping', 'S&C Lead'], ['Capability Mapping', 'Field Effectiveness'],
+            ['Capability Mapping', 'Build Teams'],
+            ['Problem Statements', 'S&C Lead'], ['Problem Statements', 'Field Effectiveness'],
+            ['North Star', 'S&C Lead'], ['North Star', 'PMO'],
+            ['Measurements', 'Build Teams'], ['Measurements', 'P+T'],
+            ['S&C Lead', 'S&C Lead'], // self — skip
+            ['Solutioning', 'S&C Lead'], ['Solutioning', 'Build Teams'], ['Solutioning', 'Buy Teams'],
+            ['Build Teams', 'S&C Lead'], ['Build Teams', 'P+T'], ['Build Teams', 'Measurements'],
+            ['Requirements', 'Build Teams'], ['Requirements', 'P+T'],
+            ['P+T', 'Build Teams'], ['P+T', 'Measurements'],
+            ['Delivery', 'P+T'],
+            ['Persona', 'S&C Lead'], ['Persona', 'Field Effectiveness'],
+            ['C.UX', 'Persona'], ['C.UX', 'Field Effectiveness'],
+        ];
+
+        // Initialize
+        function init() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            let isDefault = false;
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state.cards = parsed.cards || [];
+                    state.connections = parsed.connections || [];
+                    state.centerHub = parsed.centerHub || state.centerHub;
+                    state.processes = migrateProcesses(parsed.processes || ['Entry Point', 'Phase 1: Formalization', 'Phase 2: Capability Mapping', 'Phase 3: Solutioning']);
+                    nextId = Math.max(...state.cards.map(c => c.id), 0) + 1;
+                    showToast('Restored saved layout');
+                } catch (e) {
+                    loadDefaults();
+                    isDefault = true;
+                }
+            } else {
+                loadDefaults();
+                isDefault = true;
+            }
+            deriveConnections();
+            renderAll();
+            renderProcessPills();
+            updateCardCount();
+            if (isDefault) {
+                centerDiagram();
+            }
+        }
+
+        function loadDefaults() {
+            state.cards = defaultCards.map((d, i) => ({
+                id: i + 1,
+                name: d.name,
+                badge: d.badge,
+                x: d.x,
+                y: d.y,
+                color: null
+            }));
+            nextId = state.cards.length + 1;
+
+            // Build connections from names
+            state.connections = [];
+            let connId = 1;
+            const nameToId = {};
+            state.cards.forEach(c => { nameToId[c.name] = c.id; });
+
+            const seen = new Set();
+            defaultConnections.forEach(([from, to]) => {
+                const fromId = nameToId[from];
+                const toId = nameToId[to];
+                if (fromId && toId && fromId !== toId) {
+                    const key = [Math.min(fromId, toId), Math.max(fromId, toId)].join('-');
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        state.connections.push({ id: connId++, fromId, toId });
+                    }
+                }
+            });
+        }
+
+        // Derive connections from process pill team assignments (including children)
+        function deriveConnections() {
+            // Collect all team arrays (parent + children)
+            const allTeamArrays = [];
+            state.processes.forEach(proc => {
+                allTeamArrays.push(proc.teams);
+                (proc.children || []).forEach(child => {
+                    allTeamArrays.push(child.teams);
+                });
+            });
+
+            const anyTeamsAssigned = allTeamArrays.some(t => t.length > 0);
+            if (!anyTeamsAssigned) return; // Keep existing connections (defaultConnections fallback)
+
+            const connectionSet = new Set();
+            const connections = [];
+            let connId = 1;
+
+            allTeamArrays.forEach(teams => {
+                for (let i = 0; i < teams.length; i++) {
+                    for (let j = i + 1; j < teams.length; j++) {
+                        const a = Math.min(teams[i], teams[j]);
+                        const b = Math.max(teams[i], teams[j]);
+                        const key = `${a}-${b}`;
+                        if (!connectionSet.has(key)) {
+                            connectionSet.add(key);
+                            connections.push({ id: connId++, fromId: a, toId: b });
+                        }
+                    }
+                }
+            });
+
+            state.connections = connections;
+        }
+
+        // Rendering
+        function renderAll() {
+            renderCards();
+            renderHub();
+            renderConnections();
+        }
+
+        function renderCards() {
+            // Remove existing cards
+            canvas.querySelectorAll('.team-card').forEach(el => el.remove());
+
+            state.cards.forEach(card => {
+                const el = createCardElement(card);
+                canvas.appendChild(el);
+            });
+        }
+
+        function createCardElement(card) {
+            const el = document.createElement('div');
+            el.className = 'team-card';
+            el.dataset.id = card.id;
+            el.style.left = card.x + 'px';
+            el.style.top = card.y + 'px';
+
+            el.innerHTML = `
+                <div class="card-delete-btn" data-action="delete-card">&times;</div>
+                <div class="team-name">${escapeHtml(card.name)}</div>
+                <div class="tool-count-badge">${escapeHtml(card.badge)}</div>
+                <div class="team-tools">
+                    <div class="tool-dot"></div>
+                </div>
+            `;
+
+            setupCardEvents(el, card);
+            return el;
+        }
+
+        function renderHub() {
+            let hub = canvas.querySelector('.center-hub');
+            if (!hub) {
+                hub = document.createElement('div');
+                hub.className = 'center-hub';
+                canvas.appendChild(hub);
+            }
+            hub.style.left = state.centerHub.x + 'px';
+            hub.style.top = state.centerHub.y + 'px';
+            hub.style.transform = 'translate(-50%, -50%)';
+            hub.innerHTML = `
+                <div>${escapeHtml(state.centerHub.label)}</div>
+                <div class="hub-subtitle">${escapeHtml(state.centerHub.subtitle)}</div>
+            `;
+
+            // Double-click to edit hub text
+            const hubLabel = hub.querySelector('div:first-child');
+            const hubSubtitle = hub.querySelector('.hub-subtitle');
+
+            hubLabel.addEventListener('dblclick', (e) => {
+                if (appMode === 'present') return;
+                e.stopPropagation();
+                startHubEditing(hubLabel, 'label');
+            });
+
+            hubSubtitle.addEventListener('dblclick', (e) => {
+                if (appMode === 'present') return;
+                e.stopPropagation();
+                startHubEditing(hubSubtitle, 'subtitle');
+            });
+
+            // Make hub draggable
+            hub.addEventListener('mousedown', (e) => {
+                if (appMode === 'present') return;
+                if (e.target.getAttribute('contenteditable') === 'true') return;
+                if (e.button !== 0) return;
+                e.preventDefault();
+                const rect = hub.getBoundingClientRect();
+                dragging = { type: 'hub', el: hub };
+                dragOffset.x = e.clientX - rect.left - rect.width / 2;
+                dragOffset.y = e.clientY - rect.top - rect.height / 2;
+            });
+        }
+
+        function renderConnections() {
+            // Clear existing paths but keep preview line if any
+            svg.querySelectorAll('path').forEach(p => p.remove());
+
+            state.connections.forEach(conn => {
+                const fromCard = state.cards.find(c => c.id === conn.fromId);
+                const toCard = state.cards.find(c => c.id === conn.toId);
+                if (!fromCard || !toCard) return;
+
+                const fromEl = canvas.querySelector(`[data-id="${conn.fromId}"]`);
+                const toEl = canvas.querySelector(`[data-id="${conn.toId}"]`);
+                if (!fromEl || !toEl) return;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.dataset.connId = conn.id;
+                path.setAttribute('d', calcPath(fromEl, toEl));
+                path.setAttribute('stroke-width', '2');
+
+                svg.appendChild(path);
+            });
+        }
+
+        function calcPath(el1, el2) {
+            const containerRect = diagramArea.getBoundingClientRect();
+            const r1 = el1.getBoundingClientRect();
+            const r2 = el2.getBoundingClientRect();
+
+            const x1 = r1.left + r1.width / 2 - containerRect.left;
+            const y1 = r1.top + r1.height / 2 - containerRect.top;
+            const x2 = r2.left + r2.width / 2 - containerRect.left;
+            const y2 = r2.top + r2.height / 2 - containerRect.top;
+
+            // Quadratic bezier with control point offset
+            const mx = (x1 + x2) / 2;
+            const my = (y1 + y2) / 2;
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const offset = Math.min(Math.abs(dx), Math.abs(dy)) * 0.3;
+            const cx = mx - dy * 0.2;
+            const cy = my + dx * 0.2;
+
+            return `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+        }
+
+        // Card events
+        function setupCardEvents(el, card) {
+            // Drag
+            el.addEventListener('mousedown', (e) => {
+                if (appMode === 'present') return;
+                if (e.target.classList.contains('card-delete-btn')) return;
+                if (e.target.getAttribute('contenteditable') === 'true') return;
+                if (e.button !== 0) return;
+
+                e.preventDefault();
+                const rect = el.getBoundingClientRect();
+                dragging = { type: 'card', el, card };
+                dragOffset.x = e.clientX - rect.left;
+                dragOffset.y = e.clientY - rect.top;
+                el.classList.add('dragging');
+            });
+
+            // Double-click to edit
+            el.querySelector('.team-name').addEventListener('dblclick', (e) => {
+                if (appMode === 'present') return;
+                e.stopPropagation();
+                startEditing(e.target, card, 'name');
+            });
+
+            el.querySelector('.tool-count-badge').addEventListener('dblclick', (e) => {
+                if (appMode === 'present') return;
+                e.stopPropagation();
+                startEditing(e.target, card, 'badge');
+            });
+
+            // Delete button
+            el.querySelector('.card-delete-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteCard(card.id);
+            });
+
+            // Right-click context menu
+            el.addEventListener('contextmenu', (e) => {
+                if (appMode === 'present') return;
+                e.preventDefault();
+                e.stopPropagation();
+                contextMenuTarget = card;
+                showContextMenu(e.clientX, e.clientY);
+            });
+        }
+
+        // Hub inline editing
+        function startHubEditing(textEl, field) {
+            textEl.setAttribute('contenteditable', 'true');
+            textEl.focus();
+            const range = document.createRange();
+            range.selectNodeContents(textEl);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+
+            const finishEdit = () => {
+                textEl.removeAttribute('contenteditable');
+                const newText = textEl.textContent.trim() || (field === 'label' ? 'Hub' : 'Subtitle');
+                textEl.textContent = newText;
+                state.centerHub[field] = newText;
+                textEl.removeEventListener('blur', finishEdit);
+                textEl.removeEventListener('keydown', handleKey);
+            };
+
+            const handleKey = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    finishEdit();
+                } else if (e.key === 'Escape') {
+                    textEl.textContent = state.centerHub[field];
+                    textEl.removeAttribute('contenteditable');
+                    textEl.removeEventListener('blur', finishEdit);
+                    textEl.removeEventListener('keydown', handleKey);
+                }
+            };
+
+            textEl.addEventListener('blur', finishEdit);
+            textEl.addEventListener('keydown', handleKey);
+        }
+
+        // Inline editing
+        function startEditing(textEl, card, field) {
+            textEl.setAttribute('contenteditable', 'true');
+            textEl.focus();
+
+            // Select all text
+            const range = document.createRange();
+            range.selectNodeContents(textEl);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+
+            const finishEdit = () => {
+                textEl.removeAttribute('contenteditable');
+                const newText = textEl.textContent.trim() || (field === 'name' ? 'Untitled' : 'Role');
+                textEl.textContent = newText;
+                card[field] = newText;
+                textEl.removeEventListener('blur', finishEdit);
+                textEl.removeEventListener('keydown', handleKey);
+            };
+
+            const handleKey = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    finishEdit();
+                } else if (e.key === 'Escape') {
+                    textEl.textContent = card[field];
+                    textEl.removeAttribute('contenteditable');
+                    textEl.removeEventListener('blur', finishEdit);
+                    textEl.removeEventListener('keydown', handleKey);
+                }
+            };
+
+            textEl.addEventListener('blur', finishEdit);
+            textEl.addEventListener('keydown', handleKey);
+        }
+
+        // Drag handling
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+
+            const containerRect = container.getBoundingClientRect();
+
+            if (dragging.type === 'card') {
+                const x = (e.clientX - containerRect.left) / zoomLevel - dragOffset.x / zoomLevel;
+                const y = (e.clientY - containerRect.top) / zoomLevel - dragOffset.y / zoomLevel;
+                dragging.el.style.left = x + 'px';
+                dragging.el.style.top = y + 'px';
+                dragging.card.x = x;
+                dragging.card.y = y;
+                renderConnections();
+            } else if (dragging.type === 'hub') {
+                const x = (e.clientX - containerRect.left) / zoomLevel - dragOffset.x / zoomLevel;
+                const y = (e.clientY - containerRect.top) / zoomLevel - dragOffset.y / zoomLevel;
+                dragging.el.style.left = x + 'px';
+                dragging.el.style.top = y + 'px';
+                state.centerHub.x = x;
+                state.centerHub.y = y;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (dragging) {
+                if (dragging.el) dragging.el.classList.remove('dragging');
+                dragging = null;
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideContextMenu();
+            }
+        });
+
+        // Add card
+        document.getElementById('btnAddCard').addEventListener('click', () => {
+            const containerRect = container.getBoundingClientRect();
+            const card = {
+                id: nextId++,
+                name: 'New Team',
+                badge: 'Role',
+                x: containerRect.width / 2 - 70,
+                y: containerRect.height / 2 - 30,
+                color: null
+            };
+            state.cards.push(card);
+            const el = createCardElement(card);
+            canvas.appendChild(el);
+            updateCardCount();
+            showToast('Card added');
+        });
+
+        // Delete card
+        function deleteCard(cardId) {
+            state.cards = state.cards.filter(c => c.id !== cardId);
+            // Remove card from all process pill team assignments (parent + children)
+            state.processes.forEach(proc => {
+                const idx = proc.teams.indexOf(cardId);
+                if (idx >= 0) proc.teams.splice(idx, 1);
+                (proc.children || []).forEach(child => {
+                    const cIdx = child.teams.indexOf(cardId);
+                    if (cIdx >= 0) child.teams.splice(cIdx, 1);
+                });
+            });
+            const el = canvas.querySelector(`[data-id="${cardId}"]`);
+            if (el) el.remove();
+            deriveConnections();
+            renderConnections();
+            updateCardCount();
+            showToast('Card deleted');
+        }
+
+        // Context menu
+        function showContextMenu(x, y) {
+            contextMenu.style.left = x + 'px';
+            contextMenu.style.top = y + 'px';
+            contextMenu.style.display = 'block';
+        }
+
+        function hideContextMenu() {
+            contextMenu.style.display = 'none';
+            contextMenuTarget = null;
+        }
+
+        document.addEventListener('click', () => hideContextMenu());
+
+        contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const action = item.dataset.action;
+                if (!contextMenuTarget) return;
+
+                if (action === 'delete') {
+                    deleteCard(contextMenuTarget.id);
+                } else if (action === 'edit') {
+                    const el = canvas.querySelector(`[data-id="${contextMenuTarget.id}"]`);
+                    if (el) startEditing(el.querySelector('.team-name'), contextMenuTarget, 'name');
+                } else if (action === 'duplicate') {
+                    const dup = {
+                        id: nextId++,
+                        name: contextMenuTarget.name + ' (copy)',
+                        badge: contextMenuTarget.badge,
+                        x: contextMenuTarget.x + 20,
+                        y: contextMenuTarget.y + 20,
+                        color: contextMenuTarget.color
+                    };
+                    state.cards.push(dup);
+                    const el = createCardElement(dup);
+                    canvas.appendChild(el);
+                    updateCardCount();
+                    showToast('Card duplicated');
+                }
+                hideContextMenu();
+            });
+        });
+
+        // Save
+        document.getElementById('btnSave').addEventListener('click', () => {
+            const { connections, ...saveState } = state;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(saveState));
+            showToast('Layout saved');
+        });
+
+        // Export JSON
+        document.getElementById('btnExportJson').addEventListener('click', () => {
+            const json = JSON.stringify(state, null, 2);
+            downloadFile('tpa-ecosystem.json', json, 'application/json');
+            showToast('JSON exported');
+        });
+
+        // Export HTML
+        document.getElementById('btnExportHtml').addEventListener('click', () => {
+            const html = generateStaticHtml();
+            downloadFile('tpa-ecosystem-snapshot.html', html, 'text/html');
+            showToast('HTML exported');
+        });
+
+        function generateStaticHtml() {
+            let cardsHtml = '';
+            state.cards.forEach(card => {
+                cardsHtml += `
+        <div style="position:absolute;left:${card.x}px;top:${card.y}px;background:#252936;border:1px solid #3a3f52;border-radius:8px;padding:0.75rem 1rem;min-width:140px;">
+            <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.25rem;">${escapeHtml(card.name)}</div>
+            <div style="font-size:0.75rem;color:#9BA3B7;">${escapeHtml(card.badge)}</div>
+        </div>`;
+            });
+
+            let svgPaths = '';
+            state.connections.forEach(conn => {
+                const from = state.cards.find(c => c.id === conn.fromId);
+                const to = state.cards.find(c => c.id === conn.toId);
+                if (from && to) {
+                    const x1 = from.x + 70, y1 = from.y + 25;
+                    const x2 = to.x + 70, y2 = to.y + 25;
+                    const cx = (x1 + x2) / 2 - (y2 - y1) * 0.2;
+                    const cy = (y1 + y2) / 2 + (x2 - x1) * 0.2;
+                    svgPaths += `<path d="M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}" fill="none" stroke="rgba(66,72,237,0.3)" stroke-width="2"/>`;
+                }
+            });
+
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPA Ecosystem Snapshot</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #1a1d29; color: #E8EAF0; margin: 0; }
+        .header { background: #12151f; padding: 1.5rem 2rem; border-bottom: 1px solid #3a3f52; }
+        .title { font-size: 1.1rem; font-weight: 600; }
+        .subtitle { font-size: 0.9rem; color: #9BA3B7; margin-top: 0.25rem; }
+        .canvas { position: relative; width: 100%; min-height: 950px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">TPA Ecosystem</div>
+        <div class="subtitle">Technology & Tools Landscape (Snapshot)</div>
+    </div>
+    <div class="canvas">
+        <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">
+            ${svgPaths}
+        </svg>
+        <div style="position:absolute;left:${state.centerHub.x}px;top:${state.centerHub.y}px;transform:translate(-50%,-50%);width:140px;height:140px;border-radius:50%;background:linear-gradient(135deg,#FFB800,#FFA000);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:1.2rem;color:#1a1d29;box-shadow:0 8px 32px rgba(255,184,0,0.4);">
+            <div>${escapeHtml(state.centerHub.label)}</div>
+            <div style="font-size:0.65rem;font-weight:500;opacity:0.8;">${escapeHtml(state.centerHub.subtitle)}</div>
+        </div>
+        ${cardsHtml}
+    </div>
+</body>
+</html>`;
+        }
+
+        // Search
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            document.querySelectorAll('.team-card').forEach(el => {
+                const text = el.textContent.toLowerCase();
+                el.style.opacity = (!search || text.includes(search)) ? '1' : '0.2';
+            });
+        });
+
+        // Utility functions
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function downloadFile(filename, content, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 2000);
+        }
+
+        function updateCardCount() {
+            document.getElementById('cardCount').textContent = state.cards.length + ' cards';
+        }
+
+        // Process Pills
+        const processBar = document.getElementById('processBar');
+        const explanationPanel = document.getElementById('explanationPanel');
+
+        function renderProcessPills() {
+            processBar.innerHTML = '';
+            state.processes.forEach((proc, index) => {
+                const group = document.createElement('div');
+                group.className = 'process-pill-group';
+                if (collapsedPills.has(index)) group.classList.add('collapsed');
+
+                const pill = document.createElement('span');
+                pill.className = 'process-pill';
+                if (appMode === 'present') pill.classList.add('present-clickable');
+                if (selectedPillIndex === index && selectedSubIndex === null) pill.classList.add('active-pill');
+                pill.textContent = proc.name;
+
+                // Expand/collapse toggle when children exist or in edit mode
+                if (proc.children.length > 0 || appMode === 'edit') {
+                    const toggle = document.createElement('span');
+                    toggle.className = 'expand-toggle';
+                    toggle.textContent = collapsedPills.has(index) ? '\u25B6' : '\u25BC';
+                    toggle.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (collapsedPills.has(index)) {
+                            collapsedPills.delete(index);
+                        } else {
+                            collapsedPills.add(index);
+                        }
+                        renderProcessPills();
+                    });
+                    pill.appendChild(toggle);
+                }
+
+                if (appMode === 'edit') {
+                    const deleteBtn = document.createElement('span');
+                    deleteBtn.className = 'pill-delete';
+                    deleteBtn.textContent = '\u00d7';
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        state.processes.splice(index, 1);
+                        collapsedPills.delete(index);
+                        if (selectedPillIndex === index) { selectedPillIndex = null; selectedSubIndex = null; hideExplanationPanel(); }
+                        renderProcessPills();
+                    });
+                    pill.appendChild(deleteBtn);
+
+                    pill.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        pill.setAttribute('contenteditable', 'true');
+                        pill.focus();
+                        const range = document.createRange();
+                        range.selectNodeContents(pill);
+                        if (pill.firstChild && pill.firstChild.nodeType === 3) {
+                            range.setEnd(pill.firstChild, pill.firstChild.textContent.length);
+                        }
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+
+                        const finishEdit = () => {
+                            pill.removeAttribute('contenteditable');
+                            const newText = pill.firstChild?.textContent?.trim() || 'Untitled';
+                            state.processes[index].name = newText;
+                            renderProcessPills();
+                        };
+                        const handleKey = (ev) => {
+                            if (ev.key === 'Enter') { ev.preventDefault(); finishEdit(); }
+                            else if (ev.key === 'Escape') { renderProcessPills(); }
+                        };
+                        pill.addEventListener('blur', finishEdit, { once: true });
+                        pill.addEventListener('keydown', handleKey);
+                    });
+
+                    pill.addEventListener('click', (e) => {
+                        if (pill.getAttribute('contenteditable') === 'true') return;
+                        if (e.target.classList.contains('expand-toggle')) return;
+                        e.stopPropagation();
+                        if (selectedPillIndex === index && selectedSubIndex === null) {
+                            selectedPillIndex = null;
+                            selectedSubIndex = null;
+                            hideExplanationPanel();
+                        } else {
+                            selectedPillIndex = index;
+                            selectedSubIndex = null;
+                            showEditExplanationPanel(index);
+                        }
+                        renderProcessPills();
+                    });
+                } else {
+                    // Present mode - parent pill click
+                    pill.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('expand-toggle')) return;
+                        e.stopPropagation();
+                        if (selectedPillIndex === index && selectedSubIndex === null) {
+                            selectedPillIndex = null;
+                            selectedSubIndex = null;
+                            hideExplanationPanel();
+                        } else {
+                            selectedPillIndex = index;
+                            selectedSubIndex = null;
+                            showPresentExplanationPanel(index);
+                        }
+                        renderProcessPills();
+                    });
+                }
+
+                group.appendChild(pill);
+
+                // Sub-pill row
+                const subRow = document.createElement('div');
+                subRow.className = 'sub-pill-row';
+
+                proc.children.forEach((child, subIdx) => {
+                    const subPill = document.createElement('span');
+                    subPill.className = 'sub-pill';
+                    if (appMode === 'present') subPill.classList.add('present-clickable');
+                    if (selectedPillIndex === index && selectedSubIndex === subIdx) subPill.classList.add('active-pill');
+                    subPill.textContent = child.name;
+
+                    if (appMode === 'edit') {
+                        const subDeleteBtn = document.createElement('span');
+                        subDeleteBtn.className = 'pill-delete';
+                        subDeleteBtn.textContent = '\u00d7';
+                        subDeleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            proc.children.splice(subIdx, 1);
+                            if (selectedPillIndex === index && selectedSubIndex === subIdx) {
+                                selectedSubIndex = null;
+                                hideExplanationPanel();
+                            }
+                            deriveConnections();
+                            renderConnections();
+                            renderProcessPills();
+                        });
+                        subPill.appendChild(subDeleteBtn);
+
+                        subPill.addEventListener('dblclick', (e) => {
+                            e.stopPropagation();
+                            subPill.setAttribute('contenteditable', 'true');
+                            subPill.focus();
+                            const range = document.createRange();
+                            range.selectNodeContents(subPill);
+                            if (subPill.firstChild && subPill.firstChild.nodeType === 3) {
+                                range.setEnd(subPill.firstChild, subPill.firstChild.textContent.length);
+                            }
+                            const sel = window.getSelection();
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+
+                            const finishEdit = () => {
+                                subPill.removeAttribute('contenteditable');
+                                const newText = subPill.firstChild?.textContent?.trim() || 'Untitled';
+                                proc.children[subIdx].name = newText;
+                                renderProcessPills();
+                            };
+                            const handleKey = (ev) => {
+                                if (ev.key === 'Enter') { ev.preventDefault(); finishEdit(); }
+                                else if (ev.key === 'Escape') { renderProcessPills(); }
+                            };
+                            subPill.addEventListener('blur', finishEdit, { once: true });
+                            subPill.addEventListener('keydown', handleKey);
+                        });
+
+                        subPill.addEventListener('click', (e) => {
+                            if (subPill.getAttribute('contenteditable') === 'true') return;
+                            e.stopPropagation();
+                            if (selectedPillIndex === index && selectedSubIndex === subIdx) {
+                                selectedPillIndex = null;
+                                selectedSubIndex = null;
+                                hideExplanationPanel();
+                            } else {
+                                selectedPillIndex = index;
+                                selectedSubIndex = subIdx;
+                                showEditExplanationPanel(index, subIdx);
+                            }
+                            renderProcessPills();
+                        });
+                    } else {
+                        // Present mode - sub-pill click
+                        subPill.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            if (selectedPillIndex === index && selectedSubIndex === subIdx) {
+                                selectedPillIndex = null;
+                                selectedSubIndex = null;
+                                hideExplanationPanel();
+                            } else {
+                                selectedPillIndex = index;
+                                selectedSubIndex = subIdx;
+                                showPresentExplanationPanel(index, subIdx);
+                            }
+                            renderProcessPills();
+                        });
+                    }
+
+                    subRow.appendChild(subPill);
+                });
+
+                // Add Sub-step button in edit mode
+                if (appMode === 'edit') {
+                    const addSubBtn = document.createElement('button');
+                    addSubBtn.className = 'add-sub-pill-btn';
+                    addSubBtn.textContent = '+ sub';
+                    addSubBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        proc.children.push({ name: 'New Step', explanation: '', teams: [] });
+                        if (collapsedPills.has(index)) collapsedPills.delete(index);
+                        renderProcessPills();
+                    });
+                    subRow.appendChild(addSubBtn);
+                }
+
+                group.appendChild(subRow);
+                processBar.appendChild(group);
+            });
+
+            if (appMode === 'edit') {
+                const addBtn = document.createElement('button');
+                addBtn.className = 'add-pill-btn';
+                addBtn.textContent = '+';
+                addBtn.addEventListener('click', () => {
+                    state.processes.push({ name: 'New Phase', explanation: '', teams: [], children: [] });
+                    renderProcessPills();
+                });
+                processBar.appendChild(addBtn);
+            }
+        }
+
+        // Explanation Panel - Edit Mode
+        function showEditExplanationPanel(index, subIndex) {
+            const proc = state.processes[index];
+            const target = (subIndex !== undefined && subIndex !== null) ? proc.children[subIndex] : proc;
+            const isSubPill = (subIndex !== undefined && subIndex !== null);
+            explanationPanel.innerHTML = '';
+            explanationPanel.classList.add('visible');
+            resizeHandle.classList.add('visible');
+
+            // Header label
+            const headerLabel = document.createElement('label');
+            headerLabel.textContent = isSubPill ? 'Sub-Process Step' : 'Process Name';
+            headerLabel.style.color = isSubPill ? 'var(--accent-green)' : 'var(--text-muted)';
+            explanationPanel.appendChild(headerLabel);
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = target.name;
+            nameInput.style.width = '100%';
+            nameInput.style.marginBottom = '1rem';
+            nameInput.style.padding = '0.5rem';
+            nameInput.style.border = '1px solid rgba(255,255,255,0.2)';
+            nameInput.style.borderRadius = '4px';
+            nameInput.style.background = 'rgba(0,0,0,0.3)';
+            nameInput.style.color = 'white';
+            nameInput.style.fontSize = '1rem';
+            nameInput.addEventListener('input', () => {
+                target.name = nameInput.value;
+                renderProcessPills();
+            });
+            explanationPanel.appendChild(nameInput);
+
+            if (isSubPill) {
+                const parentNote = document.createElement('div');
+                parentNote.style.fontSize = '0.75rem';
+                parentNote.style.color = 'var(--text-muted)';
+                parentNote.style.marginBottom = '0.5rem';
+                parentNote.textContent = 'Parent: ' + proc.name;
+                explanationPanel.appendChild(parentNote);
+            }
+
+            const label = document.createElement('label');
+            label.textContent = 'Explanation';
+            explanationPanel.appendChild(label);
+
+            const textarea = document.createElement('textarea');
+            textarea.value = target.explanation;
+            textarea.placeholder = isSubPill ? 'Describe this sub-step...' : 'Describe what happens in this phase...';
+            textarea.style.width = '100%';
+            textarea.addEventListener('input', () => {
+                target.explanation = textarea.value;
+            });
+            explanationPanel.appendChild(textarea);
+
+            const teamLabel = document.createElement('label');
+            teamLabel.textContent = 'Associated Teams';
+            explanationPanel.appendChild(teamLabel);
+
+            const checklist = document.createElement('div');
+            checklist.className = 'team-checklist';
+
+            state.cards.forEach(card => {
+                const item = document.createElement('div');
+                item.className = 'team-check-item';
+                if (target.teams.includes(card.id)) item.classList.add('selected');
+                item.textContent = card.name;
+                item.addEventListener('click', () => {
+                    const idx = target.teams.indexOf(card.id);
+                    if (idx >= 0) {
+                        target.teams.splice(idx, 1);
+                        item.classList.remove('selected');
+                    } else {
+                        target.teams.push(card.id);
+                        item.classList.add('selected');
+                    }
+                    deriveConnections();
+                    renderConnections();
+                });
+                checklist.appendChild(item);
+            });
+            explanationPanel.appendChild(checklist);
+
+            // Add Sub-step button at bottom of parent panel
+            if (!isSubPill) {
+                const addSubBtn = document.createElement('button');
+                addSubBtn.className = 'add-sub-pill-btn';
+                addSubBtn.style.marginTop = '1rem';
+                addSubBtn.style.alignSelf = 'flex-start';
+                addSubBtn.textContent = '+ Add Sub-step';
+                addSubBtn.addEventListener('click', () => {
+                    proc.children.push({ name: 'New Step', explanation: '', teams: [] });
+                    if (collapsedPills.has(index)) collapsedPills.delete(index);
+                    renderProcessPills();
+                    showEditExplanationPanel(index);
+                });
+                explanationPanel.appendChild(addSubBtn);
+            }
+
+            // Re-render connections after sidebar appears
+            requestAnimationFrame(() => renderConnections());
+        }
+
+        // Explanation Panel - Present Mode
+        function showPresentExplanationPanel(index, subIndex) {
+            const proc = state.processes[index];
+            const isSubPill = (subIndex !== undefined && subIndex !== null);
+            const target = isSubPill ? proc.children[subIndex] : proc;
+            explanationPanel.innerHTML = '';
+            explanationPanel.classList.add('visible');
+            resizeHandle.classList.add('visible');
+
+            const panelLeft = document.createElement('div');
+            panelLeft.className = 'panel-left';
+
+            if (isSubPill) {
+                const parentNote = document.createElement('div');
+                parentNote.style.fontSize = '0.75rem';
+                parentNote.style.color = 'var(--text-muted)';
+                parentNote.style.marginBottom = '0.25rem';
+                parentNote.textContent = proc.name;
+                panelLeft.appendChild(parentNote);
+            }
+
+            const title = document.createElement('div');
+            title.className = 'present-pill-title';
+            title.textContent = target.name;
+            panelLeft.appendChild(title);
+
+            if (target.explanation) {
+                const text = document.createElement('div');
+                text.className = 'present-text';
+                text.textContent = target.explanation;
+                panelLeft.appendChild(text);
+            } else {
+                const text = document.createElement('div');
+                text.className = 'present-text';
+                text.style.color = 'var(--text-muted)';
+                text.textContent = 'No explanation added yet.';
+                panelLeft.appendChild(text);
+            }
+
+            explanationPanel.appendChild(panelLeft);
+
+            // Re-render connections after layout reflow, then apply highlighting
+            requestAnimationFrame(() => {
+                renderConnections();
+                highlightTeamsForPill(index, subIndex);
+            });
+        }
+
+        function hideExplanationPanel() {
+            explanationPanel.classList.remove('visible');
+            explanationPanel.innerHTML = '';
+            resizeHandle.classList.remove('visible');
+
+            // Re-render connections after layout reflow, then clear any highlighting
+            requestAnimationFrame(() => {
+                renderConnections();
+                clearHighlighting();
+            });
+        }
+
+        // Present mode highlighting
+        function highlightTeamsForPill(index, subIndex) {
+            const proc = state.processes[index];
+            const isSubPill = (subIndex !== undefined && subIndex !== null);
+            let teamIds;
+            if (isSubPill) {
+                // Child pill: only that child's teams
+                teamIds = new Set(proc.children[subIndex].teams);
+            } else {
+                // Parent pill: rollup of parent teams + all children's teams
+                teamIds = new Set(proc.teams);
+                if (proc.children && proc.children.length > 0) {
+                    proc.children.forEach(child => {
+                        if (child.teams) {
+                            child.teams.forEach(t => teamIds.add(t));
+                        }
+                    });
+                }
+            }
+
+            // Highlight/dim cards
+            document.querySelectorAll('.team-card').forEach(el => {
+                const cardId = parseInt(el.dataset.id);
+                el.classList.remove('highlighted', 'dimmed');
+                if (teamIds.size > 0) {
+                    if (teamIds.has(cardId)) {
+                        el.classList.add('highlighted');
+                    } else {
+                        el.classList.add('dimmed');
+                    }
+                }
+            });
+
+            // Dim hub if teams are highlighted
+            const hub = document.querySelector('.center-hub');
+            if (hub) {
+                hub.classList.toggle('dimmed', teamIds.size > 0);
+            }
+
+            // Highlight/dim connections
+            svg.querySelectorAll('path').forEach(path => {
+                const connId = parseInt(path.dataset.connId);
+                const conn = state.connections.find(c => c.id === connId);
+                path.classList.remove('conn-highlighted', 'conn-dimmed');
+                if (conn && teamIds.size > 0) {
+                    if (teamIds.has(conn.fromId) && teamIds.has(conn.toId)) {
+                        path.classList.add('conn-highlighted');
+                    } else {
+                        path.classList.add('conn-dimmed');
+                    }
+                }
+            });
+        }
+
+        function clearHighlighting() {
+            document.querySelectorAll('.team-card').forEach(el => {
+                el.classList.remove('highlighted', 'dimmed');
+            });
+            const hub = document.querySelector('.center-hub');
+            if (hub) hub.classList.remove('dimmed');
+            svg.querySelectorAll('path').forEach(path => {
+                path.classList.remove('conn-highlighted', 'conn-dimmed');
+            });
+        }
+
+        // Mode toggle
+        document.getElementById('btnModeToggle').addEventListener('click', () => {
+            appMode = (appMode === 'edit') ? 'present' : 'edit';
+            const btn = document.getElementById('btnModeToggle');
+            btn.textContent = (appMode === 'edit') ? 'Present Mode' : 'Edit Mode';
+            btn.classList.toggle('mode-present', appMode === 'present');
+            document.body.classList.toggle('present-mode', appMode === 'present');
+
+            // Reset state
+            selectedPillIndex = null;
+            selectedSubIndex = null;
+            hideExplanationPanel();
+            clearHighlighting();
+
+            // Update mode indicator
+            if (appMode === 'present') {
+                document.getElementById('modeIndicator').textContent = 'Mode: Present';
+                document.getElementById('btnAddCard').style.display = 'none';
+            } else {
+                document.getElementById('modeIndicator').textContent = 'Mode: Select';
+                document.getElementById('btnAddCard').style.display = '';
+            }
+
+            renderProcessPills();
+            // Re-render connections after layout change (flex vs default)
+            requestAnimationFrame(() => renderConnections());
+            showToast(appMode === 'present' ? 'Present mode' : 'Edit mode');
+        });
+
+        // Click canvas to deselect pill in present mode
+        container.addEventListener('click', (e) => {
+            if (appMode === 'present' && selectedPillIndex !== null) {
+                if (!e.target.closest('.process-pill') && !e.target.closest('.sub-pill') && !e.target.closest('.explanation-panel')) {
+                    selectedPillIndex = null;
+                    selectedSubIndex = null;
+                    hideExplanationPanel();
+                    // clearHighlighting is called inside hideExplanationPanel's rAF
+                    renderProcessPills();
+                }
+            }
+        });
+
+        // Center diagram - radial auto-organize around hub
+        function centerDiagram() {
+            if (state.cards.length === 0) return;
+            const containerRect = container.getBoundingClientRect();
+            const cardWidth = 140;
+            const cardHeight = 60;
+            const hubRadius = 70; // half of 140px hub
+            const minGap = 100;   // minimum gap between hub edge and first ring (increased for spacing)
+            const minArcSpacing = cardWidth + 20; // minimum space between card centers on a ring
+
+            // Keep hub at its current position (do NOT move it)
+            const hubX = state.centerHub.x;
+            const hubY = state.centerHub.y;
+
+            const totalCards = state.cards.length;
+
+            // Compute each card's current angle relative to the hub
+            const cardsWithAngles = state.cards.map(card => {
+                const cardCenterX = card.x + cardWidth / 2;
+                const cardCenterY = card.y + cardHeight / 2;
+                const angle = Math.atan2(cardCenterY - hubY, cardCenterX - hubX);
+                return { card, angle };
+            });
+
+            // Sort cards by their current angle so adjacent cards stay adjacent
+            cardsWithAngles.sort((a, b) => a.angle - b.angle);
+
+            // Calculate available radius (100px margin so cards don't clip edges)
+            const maxRadius = Math.min(containerRect.width / zoomLevel, containerRect.height / zoomLevel) / 2 - 100;
+
+            // Determine ring count based on card count
+            let ringCount;
+            if (totalCards <= 8) ringCount = 1;
+            else if (totalCards <= 20) ringCount = 2;
+            else ringCount = 3;
+
+            // Calculate ring radii - evenly spaced from hub edge to maxRadius
+            const minRadius = hubRadius + minGap; // innermost ring
+            const ringRadii = [];
+            if (ringCount === 1) {
+                ringRadii.push(Math.max(minRadius, maxRadius * 0.6));
+            } else {
+                for (let i = 0; i < ringCount; i++) {
+                    const r = minRadius + (maxRadius - minRadius) * (i / (ringCount - 1));
+                    ringRadii.push(r);
+                }
+            }
+
+            // Distribute cards across rings proportional to ring radius (larger rings get more cards)
+            const totalRadiusWeight = ringRadii.reduce((sum, r) => sum + r, 0);
+            const ringCardCounts = ringRadii.map((r, i) => {
+                if (i === ringRadii.length - 1) return 0; // placeholder, computed below
+                return Math.round(totalCards * r / totalRadiusWeight);
+            });
+            // Last ring gets the remainder to avoid rounding drift
+            const assigned = ringCardCounts.slice(0, -1).reduce((s, n) => s + n, 0);
+            ringCardCounts[ringCardCounts.length - 1] = totalCards - assigned;
+
+            // Enforce minimum arc spacing: if a ring is too crowded, spill to the next ring
+            for (let i = 0; i < ringCardCounts.length - 1; i++) {
+                const circumference = 2 * Math.PI * ringRadii[i];
+                const maxFit = Math.floor(circumference / minArcSpacing);
+                if (ringCardCounts[i] > maxFit) {
+                    const overflow = ringCardCounts[i] - maxFit;
+                    ringCardCounts[i] = maxFit;
+                    ringCardCounts[i + 1] += overflow;
+                }
+            }
+
+            // Add transition for smooth animation
+            document.querySelectorAll('.team-card').forEach(el => {
+                el.style.transition = 'left 0.5s ease, top 0.5s ease';
+            });
+            const hub = canvas.querySelector('.center-hub');
+            if (hub) hub.style.transition = 'left 0.5s ease, top 0.5s ease';
+
+            // Place cards on rings, anchored to their original angular positions
+            let cardIndex = 0;
+            for (let r = 0; r < ringRadii.length; r++) {
+                const count = ringCardCounts[r];
+                if (count <= 0) continue;
+                const radius = ringRadii[r];
+
+                // Get the slice of angle-sorted cards for this ring
+                const ringCards = cardsWithAngles.slice(cardIndex, cardIndex + count);
+
+                // Compute the median original angle for this group
+                const medianIdx = Math.floor(ringCards.length / 2);
+                const medianAngle = ringCards[medianIdx].angle;
+
+                // Calculate even spacing for cards on this ring
+                const arcSpacing = (2 * Math.PI) / count;
+
+                // Anchor distribution so median card lands at its original angle
+                const startAngle = medianAngle - arcSpacing * medianIdx;
+
+                for (let i = 0; i < count; i++) {
+                    if (cardIndex + i >= totalCards) break;
+                    const angle = startAngle + arcSpacing * i;
+                    const card = ringCards[i].card;
+                    card.x = hubX + radius * Math.cos(angle) - cardWidth / 2;
+                    card.y = hubY + radius * Math.sin(angle) - cardHeight / 2;
+                }
+                cardIndex += count;
+            }
+
+            // Reset zoom to 1.0
+            zoomLevel = 1;
+            applyZoom();
+
+            renderAll();
+
+            // Remove transition after animation completes
+            setTimeout(() => {
+                document.querySelectorAll('.team-card').forEach(el => {
+                    el.style.transition = '';
+                });
+                const hubEl = canvas.querySelector('.center-hub');
+                if (hubEl) hubEl.style.transition = '';
+                renderConnections();
+            }, 600);
+        }
+
+        document.getElementById('btnCenter').addEventListener('click', () => {
+            centerDiagram();
+            showToast('Cards organized around hub');
+        });
+
+        // Zoom
+        function applyZoom() {
+            zoomLevel = Math.round(zoomLevel * 10) / 10; // avoid float drift
+            zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomLevel));
+            canvas.style.transform = `scale(${zoomLevel})`;
+            canvas.style.transformOrigin = 'center center';
+            // SVG is not scaled -- paths are drawn in screen-space coordinates
+            // to stay aligned with the CSS-scaled canvas cards
+            document.getElementById('zoomDisplay').textContent = Math.round(zoomLevel * 100) + '%';
+            renderConnections();
+        }
+
+        document.getElementById('btnZoomIn').addEventListener('click', () => {
+            zoomLevel += ZOOM_STEP;
+            applyZoom();
+        });
+
+        document.getElementById('btnZoomOut').addEventListener('click', () => {
+            zoomLevel -= ZOOM_STEP;
+            applyZoom();
+        });
+
+        container.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                zoomLevel += (e.deltaY < 0) ? ZOOM_STEP : -ZOOM_STEP;
+                applyZoom();
+            }
+        }, { passive: false });
+
+        // Initialize on load
+        init();
+    })();
+    </script>
+</body>
+</html>
