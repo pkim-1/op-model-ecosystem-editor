@@ -2187,27 +2187,45 @@
                 panelLeft.appendChild(text);
             }
 
-            // Show associated teams with RACI roles
+            // Show associated teams with RACI roles - vertical grouped layout
             if (target.teams && target.teams.length > 0) {
-                const teamList = document.createElement('div');
-                teamList.style.cssText = 'margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.4rem;';
                 const RACI_COLORS_PRESENT = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)' };
+                const RACI_LABELS = { R: 'Responsible', A: 'Accountable', C: 'Consulted', I: 'Informed' };
+                const RACI_ORDER = ['R', 'A', 'C', 'I'];
+
+                // Group teams by role
+                const grouped = {};
                 target.teams.forEach(t => {
                     const entry = (typeof t === 'object') ? t : { id: t, role: 'R' };
+                    const role = entry.role || 'R';
+                    if (!grouped[role]) grouped[role] = [];
                     const card = state.cards.find(c => c.id === entry.id);
-                    if (!card) return;
-                    const chip = document.createElement('span');
-                    chip.style.cssText = 'font-size:0.75rem; padding:0.2rem 0.5rem; border-radius:4px; background:var(--card-bg); border:1px solid var(--border-subtle); display:inline-flex; align-items:center; gap:4px;';
-                    chip.textContent = card.name;
-                    const badge = document.createElement('span');
-                    badge.className = 'raci-badge';
-                    badge.textContent = entry.role;
-                    badge.style.background = RACI_COLORS_PRESENT[entry.role] || 'var(--text-muted)';
-                    badge.style.color = entry.role === 'I' ? 'var(--text-light)' : 'var(--bg-dark)';
-                    chip.appendChild(badge);
-                    teamList.appendChild(chip);
+                    if (card) grouped[role].push(card.name);
                 });
-                panelLeft.appendChild(teamList);
+
+                const raciContainer = document.createElement('div');
+                raciContainer.style.cssText = 'margin-top:0.75rem; display:flex; flex-direction:column; gap:0.5rem;';
+
+                RACI_ORDER.forEach(role => {
+                    if (!grouped[role] || grouped[role].length === 0) return;
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex; align-items:flex-start; gap:0.5rem;';
+
+                    const roleBadge = document.createElement('span');
+                    roleBadge.style.cssText = `font-size:0.7rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:3px; min-width:1.8rem; text-align:center; background:${RACI_COLORS_PRESENT[role]}; color:${role === 'I' ? 'var(--text-light)' : 'var(--bg-dark)'}`;
+                    roleBadge.textContent = role;
+                    roleBadge.title = RACI_LABELS[role];
+                    row.appendChild(roleBadge);
+
+                    const teamNames = document.createElement('span');
+                    teamNames.style.cssText = 'font-size:0.75rem; color:var(--text-light); line-height:1.6;';
+                    teamNames.textContent = grouped[role].join(', ');
+                    row.appendChild(teamNames);
+
+                    raciContainer.appendChild(row);
+                });
+
+                panelLeft.appendChild(raciContainer);
             }
 
             explanationPanel.appendChild(panelLeft);
