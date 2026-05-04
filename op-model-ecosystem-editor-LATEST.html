@@ -2003,8 +2003,21 @@
         function highlightTeamsForPill(index, subIndex) {
             const proc = state.processes[index];
             const isSubPill = (subIndex !== undefined && subIndex !== null);
-            const target = isSubPill ? proc.children[subIndex] : proc;
-            const teamIds = new Set(target.teams);
+            let teamIds;
+            if (isSubPill) {
+                // Child pill: only that child's teams
+                teamIds = new Set(proc.children[subIndex].teams);
+            } else {
+                // Parent pill: rollup of parent teams + all children's teams
+                teamIds = new Set(proc.teams);
+                if (proc.children && proc.children.length > 0) {
+                    proc.children.forEach(child => {
+                        if (child.teams) {
+                            child.teams.forEach(t => teamIds.add(t));
+                        }
+                    });
+                }
+            }
 
             // Highlight/dim cards
             document.querySelectorAll('.team-card').forEach(el => {
