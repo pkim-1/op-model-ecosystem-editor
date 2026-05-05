@@ -1317,10 +1317,10 @@
                 if (e.target.getAttribute('contenteditable') === 'true') return;
                 if (e.button !== 0) return;
                 e.preventDefault();
-                const rect = hub.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
                 dragging = { type: 'hub', el: hub };
-                dragOffset.x = e.clientX - rect.left - rect.width / 2;
-                dragOffset.y = e.clientY - rect.top - rect.height / 2;
+                dragOffset.x = (e.clientX - containerRect.left) / zoomLevel - state.centerHub.x;
+                dragOffset.y = (e.clientY - containerRect.top) / zoomLevel - state.centerHub.y;
             });
         }
 
