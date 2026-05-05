@@ -2646,15 +2646,19 @@
                 const scaleX = newRect.width / baselineDimensions.width;
                 const scaleY = newRect.height / baselineDimensions.height;
 
-                // Scale hub position proportionally
-                state.centerHub.x *= scaleX;
-                state.centerHub.y *= scaleY;
+                // Center-relative scaling: keep hub centered, scale card offsets
+                const newCenterX = newRect.width / 2;
+                const newCenterY = newRect.height / 2;
 
-                // Scale all card positions proportionally
                 state.cards.forEach(card => {
-                    card.x *= scaleX;
-                    card.y *= scaleY;
+                    const oldOffsetX = card.x - state.centerHub.x;
+                    const oldOffsetY = card.y - state.centerHub.y;
+                    card.x = newCenterX + (oldOffsetX * scaleX);
+                    card.y = newCenterY + (oldOffsetY * scaleY);
                 });
+
+                state.centerHub.x = newCenterX;
+                state.centerHub.y = newCenterY;
 
                 // Update baseline to current dimensions for subsequent resizes
                 baselineDimensions = { width: newRect.width, height: newRect.height };
