@@ -1325,6 +1325,11 @@
         }
 
         function renderConnections() {
+            // Set explicit SVG dimensions to match diagram area
+            const diagramRect = diagramArea.getBoundingClientRect();
+            svg.setAttribute('width', diagramRect.width);
+            svg.setAttribute('height', diagramRect.height);
+
             // Clear existing paths but keep preview line if any
             svg.querySelectorAll('path').forEach(p => p.remove());
 
