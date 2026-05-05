@@ -949,6 +949,8 @@
             ]
         };
 
+        let baselineDimensions = null; // { width, height } - set when cards first positioned
+
         const SUB_PILL_COLORS = [
             [66, 72, 237],    // 0 - Pacific Blue
             [155, 81, 224],   // 1 - Purple
@@ -1098,6 +1100,13 @@
             ['C.UX', 'Persona'], ['C.UX', 'Field Effectiveness'],
         ];
 
+        function captureBaseline() {
+            if (!baselineDimensions) {
+                const rect = container.getBoundingClientRect();
+                baselineDimensions = { width: rect.width, height: rect.height };
+            }
+        }
+
         // Initialize
         function init() {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -1126,6 +1135,7 @@
             if (isDefault) {
                 centerDiagram();
             }
+            captureBaseline();
         }
 
         function loadDefaults() {
@@ -2593,23 +2603,45 @@
             }
         }, { passive: false });
 
-        // Window resize auto-adjustment with debounce
+        // Window resize auto-adjustment with debounce and proportional scaling
         let resizeTimeout;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
+                if (!baselineDimensions) {
+                    captureBaseline();
+                    return;
+                }
+
+                const newRect = container.getBoundingClientRect();
+                const scaleX = newRect.width / baselineDimensions.width;
+                const scaleY = newRect.height / baselineDimensions.height;
+
+                // Scale hub position proportionally
+                state.centerHub.x *= scaleX;
+                state.centerHub.y *= scaleY;
+
+                // Scale all card positions proportionally
+                state.cards.forEach(card => {
+                    card.x *= scaleX;
+                    card.y *= scaleY;
+                });
+
+                // Update baseline to current dimensions for subsequent resizes
+                baselineDimensions = { width: newRect.width, height: newRect.height };
+
                 // Adjust panel width if it exceeds the new maximum
                 if (explanationPanel.classList.contains('visible')) {
-                    const containerRect = container.getBoundingClientRect();
-                    const maxWidth = containerRect.width * 0.333;
+                    const maxWidth = newRect.width * 0.333;
                     const currentWidth = explanationPanel.offsetWidth;
                     if (currentWidth > maxWidth) {
                         explanationPanel.style.width = maxWidth + 'px';
                     }
                 }
+
                 // Use requestAnimationFrame to ensure layout is complete before rendering
                 requestAnimationFrame(() => {
-                    renderConnections();
+                    renderAll();
                     if (appMode === 'present' && selectedPillIndex !== null) {
                         showPresentExplanationPanel(selectedPillIndex, selectedSubIndex);
                     }
