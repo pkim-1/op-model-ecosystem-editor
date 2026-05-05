@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-05-05 - Completed quick task 260504-qh5: Fix hub drag offset calculation to prevent jump when starting to drag
+Last activity: 2026-05-05 - Completed quick task 260504-qkn: Fix window resize to adjust panel width and maintain proper layout
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -108,6 +108,7 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-05-04 | 260504-q3f | Panel resize & responsive layout | Left panel capped at 1/3 width, window resize handler for diagram adjustment, vertical RACI display in presentation mode |
 | 2026-05-04 | 260504-qcl | Remove panel max-width constraint | Removed CSS max-width: 400px to allow panel to expand to full 1/3 window width |
 | 2026-05-05 | 260504-qh5 | Fix hub drag jump | Fixed drag offset calculation to use state coordinates instead of bounding rect, preventing jump when starting drag |
+| 2026-05-05 | 260504-qkn | Fix window resize layout | Added panel width constraint check to resize handler to ensure panel stays within 1/3 max width and connections redraw properly |
 
 ## Session Continuity
 
