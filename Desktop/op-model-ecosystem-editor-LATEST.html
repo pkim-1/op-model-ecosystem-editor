@@ -866,7 +866,9 @@
         <button class="toolbar-btn" id="btnAddCard">+ Add Card</button>
         <button class="toolbar-btn primary" id="btnSave">Save</button>
         <button class="toolbar-btn" id="btnExportJson">Export JSON</button>
+        <button class="toolbar-btn" id="btnImportJson">Import JSON</button>
         <button class="toolbar-btn" id="btnExportHtml">Export HTML</button>
+        <input type="file" id="fileImportJson" accept=".json" style="display:none">
         <div class="toolbar-divider"></div>
         <button class="toolbar-btn" id="btnCenter">Center</button>
         <div class="toolbar-divider"></div>
@@ -1633,6 +1635,33 @@
             const json = JSON.stringify(state, null, 2);
             downloadFile('tpa-ecosystem.json', json, 'application/json');
             showToast('JSON exported');
+        });
+
+        // Import JSON
+        document.getElementById('btnImportJson').addEventListener('click', () => {
+            document.getElementById('fileImportJson').click();
+        });
+
+        document.getElementById('fileImportJson').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    if (!parsed.cards || !Array.isArray(parsed.cards)) {
+                        showToast('Invalid file format');
+                        return;
+                    }
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+                    init();
+                    showToast('Diagram imported');
+                } catch (err) {
+                    showToast('Invalid file format');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
         });
 
         // Export HTML
