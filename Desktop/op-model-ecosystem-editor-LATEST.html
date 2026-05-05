@@ -2593,6 +2593,15 @@
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
+                // Adjust panel width if it exceeds the new maximum
+                if (explanationPanel.classList.contains('visible')) {
+                    const containerRect = container.getBoundingClientRect();
+                    const maxWidth = containerRect.width * 0.333;
+                    const currentWidth = explanationPanel.offsetWidth;
+                    if (currentWidth > maxWidth) {
+                        explanationPanel.style.width = maxWidth + 'px';
+                    }
+                }
                 renderConnections();
                 if (appMode === 'present' && selectedPillIndex !== null) {
                     showPresentExplanationPanel(selectedPillIndex, selectedSubIndex);
