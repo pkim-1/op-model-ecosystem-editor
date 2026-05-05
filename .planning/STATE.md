@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-05-05 - Completed quick task 260505-ia5: Consolidate 6-slide Contact AI presentation into a single comprehensive slide
+Last activity: 2026-05-05 - Completed quick task 260505-mtx: Fix diagram centering on window resize - keep hub centered and scale card distances from center
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -114,6 +114,7 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-05-05 | 260505-g7e | Export/import localStorage data | Added Import JSON button to load shared diagrams from JSON files |
 | 2026-05-05 | 260505-i4u | Create a single-page HTML slide about Contact AI using EG brand style | 6-slide presentation with EG branding, keyboard/click/touch navigation, progress indicators - Desktop/contact-ai-overview.html |
 | 2026-05-05 | 260505-ia5 | Consolidate 6-slide Contact AI presentation into a single comprehensive slide | Single scrollable page with all content, removed navigation system, maintained EG brand styling - Desktop/contact-ai-overview.html |
+| 2026-05-05 | 260505-mtx | Fix diagram centering on resize | Hub stays at container center, cards scale distances from center instead of absolute positions |
 
 ## Session Continuity
 
