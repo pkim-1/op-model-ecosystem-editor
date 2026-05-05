@@ -2607,10 +2607,13 @@
                         explanationPanel.style.width = maxWidth + 'px';
                     }
                 }
-                renderConnections();
-                if (appMode === 'present' && selectedPillIndex !== null) {
-                    showPresentExplanationPanel(selectedPillIndex, selectedSubIndex);
-                }
+                // Use requestAnimationFrame to ensure layout is complete before rendering
+                requestAnimationFrame(() => {
+                    renderConnections();
+                    if (appMode === 'present' && selectedPillIndex !== null) {
+                        showPresentExplanationPanel(selectedPillIndex, selectedSubIndex);
+                    }
+                });
             }, 150);
         });
 
