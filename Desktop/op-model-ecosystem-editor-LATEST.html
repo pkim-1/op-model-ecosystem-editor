@@ -1518,8 +1518,8 @@
                 dragging.card.y = y;
                 renderConnections();
             } else if (dragging.type === 'hub') {
-                const x = (e.clientX - containerRect.left) / zoomLevel - dragOffset.x / zoomLevel;
-                const y = (e.clientY - containerRect.top) / zoomLevel - dragOffset.y / zoomLevel;
+                const x = (e.clientX - containerRect.left) / zoomLevel - dragOffset.x;
+                const y = (e.clientY - containerRect.top) / zoomLevel - dragOffset.y;
                 dragging.el.style.left = x + 'px';
                 dragging.el.style.top = y + 'px';
                 state.centerHub.x = x;
