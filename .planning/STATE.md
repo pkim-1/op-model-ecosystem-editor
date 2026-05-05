@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-14)
 Phase: 03
 Plan: Not started
 Status: Executing Phase 3
-Last activity: 2026-05-05 - Completed quick task 260504-qob: Set explicit SVG dimensions on window resize to ensure proper rendering
+Last activity: 2026-05-05 - Completed quick task 260504-qwa: Fix window resize in ecosystem editor to scale card and hub positions proportionally
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -110,6 +110,7 @@ Items acknowledged and carried forward from previous milestone close:
 | 2026-05-05 | 260504-qh5 | Fix hub drag jump | Fixed drag offset calculation to use state coordinates instead of bounding rect, preventing jump when starting drag |
 | 2026-05-05 | 260504-qkn | Fix window resize layout | Added panel width constraint check to resize handler to ensure panel stays within 1/3 max width and connections redraw properly |
 | 2026-05-05 | 260504-qob | Fix SVG rendering on resize | Set explicit SVG width/height attributes in renderConnections() to match diagram area dimensions for proper coordinate system |
+| 2026-05-05 | 260504-qwa | Fix window resize scaling | Scale card and hub positions proportionally on window resize to maintain spatial relationships |
 
 ## Session Continuity
 
