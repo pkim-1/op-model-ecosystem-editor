@@ -11,71 +11,44 @@
   --white: #FFFFFF;
   --light-gray: #F5F6FA;
   --shadow: 0 4px 20px rgba(0,0,0,0.12);
-  --transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overflow: hidden;
+  background: var(--white);
+  color: #1a1a2e;
+  line-height: 1.6;
+}
+
+section {
+  padding: 60px 80px;
+}
+
+/* Title Section */
+.section-title {
   background: var(--eg-blue);
   color: var(--white);
-}
-
-.presentation {
-  width: 100vw;
-  height: 100vh;
-  position: relative;
-  overflow: hidden;
-}
-
-.slide {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 60px 80px;
-  opacity: 0;
-  transform: translateX(100%);
-  transition: opacity var(--transition), transform var(--transition);
-  pointer-events: none;
-}
-
-.slide.active {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: all;
-}
-
-.slide.prev {
-  transform: translateX(-100%);
-}
-
-/* Slide 1: Title */
-.slide-title {
-  background: var(--eg-blue);
   text-align: center;
+  padding: 80px 80px;
 }
 
-.slide-title h1 {
+.section-title h1 {
   font-size: 4.5rem;
   font-weight: 700;
   margin-bottom: 16px;
   letter-spacing: -1px;
 }
 
-.slide-title .subtitle {
+.section-title .subtitle {
   font-size: 1.6rem;
   opacity: 0.85;
   margin-bottom: 40px;
   font-weight: 300;
 }
 
-.slide-title .brand {
+.section-title .brand {
   font-size: 1rem;
   opacity: 0.6;
   letter-spacing: 2px;
@@ -83,7 +56,7 @@ body {
   margin-top: 40px;
 }
 
-.slide-title .accent-line {
+.section-title .accent-line {
   width: 120px;
   height: 4px;
   background: var(--pacific-blue);
@@ -91,13 +64,12 @@ body {
   margin: 0 auto 40px;
 }
 
-/* Slide 2: Problem */
-.slide-problem {
+/* Problem Section */
+.section-problem {
   background: var(--white);
-  color: #1a1a2e;
 }
 
-.slide-problem h2 {
+.section-problem h2 {
   font-size: 2.8rem;
   color: var(--eg-blue);
   margin-bottom: 40px;
@@ -109,6 +81,7 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
   max-width: 1100px;
+  margin: 0 auto;
   width: 100%;
 }
 
@@ -132,39 +105,42 @@ body {
   text-align: center;
   font-size: 1.1rem;
   max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* Slide 3: What is */
-.slide-what {
+/* What Is Section */
+.section-what {
   background: linear-gradient(135deg, var(--eg-blue) 0%, #1a1aaa 100%);
+  color: var(--white);
   text-align: center;
 }
 
-.slide-what h2 {
+.section-what h2 {
   font-size: 2.8rem;
   margin-bottom: 40px;
 }
 
-.slide-what .definition {
+.section-what .definition {
   font-size: 1.4rem;
   line-height: 1.8;
   max-width: 800px;
+  margin: 0 auto;
   opacity: 0.92;
   font-weight: 300;
 }
 
-.slide-what .definition strong {
+.section-what .definition strong {
   color: var(--pacific-blue);
   font-weight: 600;
 }
 
-/* Slide 4: Components */
-.slide-components {
+/* Components Section */
+.section-components {
   background: var(--white);
-  color: #1a1a2e;
 }
 
-.slide-components h2 {
+.section-components h2 {
   font-size: 2.4rem;
   color: var(--eg-blue);
   margin-bottom: 36px;
@@ -176,6 +152,7 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
   max-width: 1200px;
+  margin: 0 auto;
   width: 100%;
 }
 
@@ -185,20 +162,19 @@ body {
   padding: 24px;
   box-shadow: var(--shadow);
   border-top: 4px solid var(--pacific-blue);
-  transition: transform 0.2s;
 }
 
-.component-card:hover { transform: translateY(-4px); }
 .component-card .icon { font-size: 2rem; margin-bottom: 12px; }
 .component-card h3 { font-size: 1rem; color: var(--eg-blue); margin-bottom: 8px; }
 .component-card p { font-size: 0.85rem; color: #555; line-height: 1.5; }
 
-/* Slide 5: Use Cases */
-.slide-usecases {
+/* Use Cases Section */
+.section-usecases {
   background: var(--eg-blue);
+  color: var(--white);
 }
 
-.slide-usecases h2 {
+.section-usecases h2 {
   font-size: 2.4rem;
   margin-bottom: 50px;
   text-align: center;
@@ -209,6 +185,7 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 28px;
   max-width: 1000px;
+  margin: 0 auto;
   width: 100%;
 }
 
@@ -218,22 +195,19 @@ body {
   background: rgba(255,255,255,0.08);
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.15);
-  transition: background 0.2s;
 }
 
-.usecase:hover { background: rgba(255,255,255,0.14); }
 .usecase .icon { font-size: 2.5rem; margin-bottom: 16px; }
 .usecase h3 { font-size: 1.1rem; margin-bottom: 10px; }
 .usecase p { font-size: 0.85rem; opacity: 0.8; line-height: 1.5; }
 
-/* Slide 6: Integration */
-.slide-integration {
+/* Integration Section */
+.section-integration {
   background: var(--white);
-  color: #1a1a2e;
   text-align: center;
 }
 
-.slide-integration h2 {
+.section-integration h2 {
   font-size: 2.4rem;
   color: var(--eg-blue);
   margin-bottom: 50px;
@@ -246,6 +220,7 @@ body {
   gap: 20px;
   flex-wrap: wrap;
   max-width: 1000px;
+  margin: 0 auto;
 }
 
 .integration-hub {
@@ -272,10 +247,7 @@ body {
   font-weight: 500;
   color: var(--eg-blue);
   border: 2px solid transparent;
-  transition: border-color 0.2s;
 }
-
-.integration-node:hover { border-color: var(--pacific-blue); }
 
 .arrow-connector {
   font-size: 2rem;
@@ -283,117 +255,49 @@ body {
   font-weight: bold;
 }
 
-/* Navigation */
-.nav-arrow {
-  position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255,255,255,0.15);
-  border: none;
-  color: var(--white);
-  font-size: 2rem;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  cursor: pointer;
-  z-index: 100;
-  transition: background 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-arrow:hover { background: rgba(255,255,255,0.3); }
-.nav-arrow.left { left: 20px; }
-.nav-arrow.right { right: 20px; }
-
-.nav-arrow.on-light {
-  background: rgba(0,0,153,0.1);
-  color: var(--eg-blue);
-}
-.nav-arrow.on-light:hover { background: rgba(0,0,153,0.2); }
-
-/* Progress */
-.progress-bar {
-  position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
-  z-index: 100;
-}
-
-.progress-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.3);
-  cursor: pointer;
-  transition: background 0.3s, transform 0.2s;
-  border: none;
-}
-
-.progress-dot.active {
-  background: var(--pacific-blue);
-  transform: scale(1.3);
-}
-
-.progress-dot.on-light { background: rgba(0,0,153,0.2); }
-.progress-dot.on-light.active { background: var(--pacific-blue); }
-
-.slide-counter {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  font-size: 0.9rem;
-  opacity: 0.6;
-  z-index: 100;
-}
-
 @media (max-width: 768px) {
-  .slide { padding: 40px 30px; }
-  .slide-title h1 { font-size: 2.8rem; }
-  .slide-title .subtitle { font-size: 1.2rem; }
+  section { padding: 40px 30px; }
+  .section-title { padding: 60px 30px; }
+  .section-title h1 { font-size: 2.8rem; }
+  .section-title .subtitle { font-size: 1.2rem; }
   h2 { font-size: 2rem !important; }
   .pain-points, .components-grid, .usecases-grid { grid-template-columns: 1fr; }
   .integration-diagram { flex-direction: column; }
-  .nav-arrow { width: 40px; height: 40px; font-size: 1.5rem; }
+  .integration-spokes { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
-<div class="presentation">
 
-  <!-- Slide 1: Title -->
-  <div class="slide slide-title active" data-bg="dark">
+  <!-- Title -->
+  <section class="section-title">
     <h1>Contact AI</h1>
     <div class="accent-line"></div>
     <p class="subtitle">Partner Contact Intelligence Layer</p>
     <p class="brand">Expedia Group</p>
-  </div>
+  </section>
 
-  <!-- Slide 2: The Problem -->
-  <div class="slide slide-problem" data-bg="light">
+  <!-- The Problem -->
+  <section class="section-problem">
     <h2>The Problem</h2>
     <div class="pain-points">
       <div class="pain-point">
-        <div class="icon">🔀</div>
+        <div class="icon">&#x1F500;</div>
         <h3>Fragmented Data</h3>
         <p>Contact info scattered across Partner Central, Salesforce, TravelAds, and marketing tools with no unified view.</p>
       </div>
       <div class="pain-point">
-        <div class="icon">❌</div>
+        <div class="icon">&#x274C;</div>
         <h3>Wrong / Unreachable Contacts</h3>
         <p>Invalid emails, retired contacts, and generic inboxes that never get a response.</p>
       </div>
       <div class="pain-point">
-        <div class="icon">🎯</div>
+        <div class="icon">&#x1F3AF;</div>
         <h3>Wrong Persona</h3>
         <p>Outreach lands on IT instead of revenue or marketing decision-makers who can act.</p>
       </div>
       <div class="pain-point">
-        <div class="icon">🔇</div>
+        <div class="icon">&#x1F507;</div>
         <h3>No Conversation Continuity</h3>
         <p>Objections, commitments, and context buried in notes across disconnected systems.</p>
       </div>
@@ -401,221 +305,93 @@ body {
     <div class="result-callout">
       <strong>Result:</strong> Missed revenue, wasted outreach, and inconsistent partner experience
     </div>
-  </div>
+  </section>
 
-  <!-- Slide 3: What is Contact AI -->
-  <div class="slide slide-what" data-bg="dark">
+  <!-- What is Contact AI -->
+  <section class="section-what">
     <h2>What is Contact AI?</h2>
     <p class="definition">
       A <strong>partner contact intelligence layer</strong> that creates a unified, AI-enriched view of the humans behind lodging partners.<br><br>
       Powers smarter <strong>coaching</strong>, <strong>sales</strong>, and <strong>marketing</strong> by turning fragmented contact data into actionable intelligence.
     </p>
-  </div>
+  </section>
 
-  <!-- Slide 4: Five Components -->
-  <div class="slide slide-components" data-bg="light">
+  <!-- Five Components -->
+  <section class="section-components">
     <h2>Five Components</h2>
     <div class="components-grid">
       <div class="component-card">
-        <div class="icon">🏗️</div>
+        <div class="icon">&#x1F3D7;&#xFE0F;</div>
         <h3>Unified Contact Data Foundation</h3>
         <p>Consolidates contacts across all systems. ML-powered deduplication creates a single Contact 360 record.</p>
       </div>
       <div class="component-card">
-        <div class="icon">✅</div>
+        <div class="icon">&#x2705;</div>
         <h3>Reachability & Enrichment</h3>
         <p>Activity and reachability scores with validated contact info. Know who is actually reachable.</p>
       </div>
       <div class="component-card">
-        <div class="icon">⏰</div>
+        <div class="icon">&#x23F0;</div>
         <h3>Channel & Timing Preferences</h3>
         <p>Historical responsiveness patterns. Predicts best time and channel for each contact.</p>
       </div>
       <div class="component-card">
-        <div class="icon">👤</div>
+        <div class="icon">&#x1F464;</div>
         <h3>Persona & Role Intelligence</h3>
         <p>Maps decision rights across the organization. Infers persona, seniority, and influence.</p>
       </div>
       <div class="component-card">
-        <div class="icon">💬</div>
+        <div class="icon">&#x1F4AC;</div>
         <h3>Intent & Sentiment Layer</h3>
         <p>LLM analysis of transcripts and communications. Extracts objections, commitments, and sentiment signals.</p>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Slide 5: Key Use Cases -->
-  <div class="slide slide-usecases" data-bg="dark">
+  <!-- Key Use Cases -->
+  <section class="section-usecases">
     <h2>Key Use Cases</h2>
     <div class="usecases-grid">
       <div class="usecase">
-        <div class="icon">📡</div>
+        <div class="icon">&#x1F4E1;</div>
         <h3>Reachability</h3>
         <p>Ensure outreach reaches valid, active humans -- not dead emails or generic inboxes.</p>
       </div>
       <div class="usecase">
-        <div class="icon">📊</div>
+        <div class="icon">&#x1F4CA;</div>
         <h3>Channel Optimization</h3>
         <p>Pick the best channel and timing for each contact based on historical engagement.</p>
       </div>
       <div class="usecase">
-        <div class="icon">🧠</div>
+        <div class="icon">&#x1F9E0;</div>
         <h3>Persona-Aware Coaching</h3>
         <p>Adapt recommendations and talking points to the contact's role and decision authority.</p>
       </div>
       <div class="usecase">
-        <div class="icon">🤝</div>
+        <div class="icon">&#x1F91D;</div>
         <h3>Sentiment Continuity</h3>
         <p>Share a common view of partner sentiment and history across all teams.</p>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Slide 6: Integration Points -->
-  <div class="slide slide-integration" data-bg="light">
+  <!-- Integration Points -->
+  <section class="section-integration">
     <h2>Integration Points</h2>
     <div class="integration-diagram">
       <div class="integration-spokes">
         <div class="integration-node">CPV / Partner Domain</div>
         <div class="integration-node">NBA / Scout</div>
       </div>
-      <div class="arrow-connector">⟷</div>
+      <div class="arrow-connector">&#x27F7;</div>
       <div class="integration-hub">Contact AI</div>
-      <div class="arrow-connector">⟷</div>
+      <div class="arrow-connector">&#x27F7;</div>
       <div class="integration-spokes">
         <div class="integration-node">Salesforce</div>
         <div class="integration-node">PIDS / Partner Journey V2</div>
       </div>
     </div>
-  </div>
+  </section>
 
-</div>
-
-<!-- Navigation Arrows -->
-<button class="nav-arrow left" onclick="navigate(-1)" aria-label="Previous slide">&#8249;</button>
-<button class="nav-arrow right" onclick="navigate(1)" aria-label="Next slide">&#8250;</button>
-
-<!-- Progress Dots -->
-<div class="progress-bar" id="progressBar"></div>
-
-<!-- Slide Counter -->
-<div class="slide-counter" id="slideCounter"></div>
-
-<script>
-(function() {
-  const slides = document.querySelectorAll('.slide');
-  const total = slides.length;
-  let current = 0;
-  let touchStartX = 0;
-
-  // Build progress dots
-  const progressBar = document.getElementById('progressBar');
-  for (let i = 0; i < total; i++) {
-    const dot = document.createElement('button');
-    dot.className = 'progress-dot';
-    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
-    dot.addEventListener('click', () => goTo(i));
-    progressBar.appendChild(dot);
-  }
-
-  function goTo(index) {
-    if (index < 0 || index >= total) return;
-    slides[current].classList.remove('active');
-    slides[current].classList.add(index > current ? 'prev' : '');
-    // Reset all non-active slides
-    slides.forEach((s, i) => {
-      if (i !== index) {
-        s.classList.remove('active');
-        s.classList.toggle('prev', i < index);
-      }
-    });
-    current = index;
-    slides[current].classList.add('active');
-    slides[current].classList.remove('prev');
-    updateUI();
-  }
-
-  function navigate(dir) {
-    goTo(current + dir);
-  }
-
-  function updateUI() {
-    // Counter
-    document.getElementById('slideCounter').textContent = `${current + 1} / ${total}`;
-
-    // Dots
-    const dots = progressBar.querySelectorAll('.progress-dot');
-    const isLight = slides[current].dataset.bg === 'light';
-    dots.forEach((dot, i) => {
-      dot.classList.toggle('active', i === current);
-      dot.classList.toggle('on-light', isLight);
-    });
-
-    // Arrows
-    const leftArrow = document.querySelector('.nav-arrow.left');
-    const rightArrow = document.querySelector('.nav-arrow.right');
-    leftArrow.classList.toggle('on-light', isLight);
-    rightArrow.classList.toggle('on-light', isLight);
-    leftArrow.style.display = current === 0 ? 'none' : 'flex';
-    rightArrow.style.display = current === total - 1 ? 'none' : 'flex';
-
-    // Counter color
-    const counter = document.getElementById('slideCounter');
-    counter.style.color = isLight ? '#000099' : '#ffffff';
-  }
-
-  // Keyboard navigation
-  document.addEventListener('keydown', (e) => {
-    switch(e.key) {
-      case 'ArrowRight':
-      case ' ':
-        e.preventDefault();
-        navigate(1);
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        navigate(-1);
-        break;
-      case 'Home':
-        e.preventDefault();
-        goTo(0);
-        break;
-      case 'End':
-        e.preventDefault();
-        goTo(total - 1);
-        break;
-      case 'f':
-      case 'F':
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          if (document.fullscreenElement) {
-            document.exitFullscreen();
-          } else {
-            document.documentElement.requestFullscreen();
-          }
-        }
-        break;
-    }
-  });
-
-  // Touch/swipe
-  document.addEventListener('touchstart', (e) => {
-    touchStartX = e.touches[0].clientX;
-  });
-
-  document.addEventListener('touchend', (e) => {
-    const diff = touchStartX - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) {
-      navigate(diff > 0 ? 1 : -1);
-    }
-  });
-
-  // Expose navigate globally for button onclick
-  window.navigate = navigate;
-
-  // Initial UI
-  updateUI();
-})();
-</script>
 </body>
 </html>
