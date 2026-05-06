@@ -1223,8 +1223,8 @@
             });
         }
 
-        const RACI_ROLE_NAMES = { R: 'Responsible', A: 'Accountable', C: 'Consulted', I: 'Informed' };
-        const RACI_DOT_COLORS = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)' };
+        const RACI_ROLE_NAMES = { R: 'Responsible', A: 'Accountable', C: 'Consulted', I: 'Informed', SS: 'Shared Services' };
+        const RACI_DOT_COLORS = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)', SS: 'var(--accent-coral, #FF6B6B)' };
 
         function getRaciRolesForTeam(teamId, filterPillIndex, filterSubIndex) {
             const roles = new Set();
@@ -2089,8 +2089,8 @@
                 });
             }
 
-            const RACI_ROLES = ['R', 'A', 'C', 'I'];
-            const RACI_COLORS = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)' };
+            const RACI_ROLES = ['R', 'A', 'C', 'I', 'SS'];
+            const RACI_COLORS = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)', SS: 'var(--accent-coral, #FF6B6B)' };
 
             state.cards.forEach(card => {
                 const item = document.createElement('div');
@@ -2126,7 +2126,7 @@
                         badge.className = 'raci-badge';
                         badge.textContent = entry.role;
                         badge.style.background = RACI_COLORS[entry.role];
-                        badge.style.color = entry.role === 'I' ? 'var(--text-light)' : 'var(--bg-dark)';
+                        badge.style.color = (entry.role === 'I' || entry.role === 'SS') ? 'var(--text-light)' : 'var(--bg-dark)';
                         badge.addEventListener('click', (e) => {
                             e.stopPropagation();
                             const currentIdx = RACI_ROLES.indexOf(entry.role);
@@ -2232,9 +2232,9 @@
 
             // Show associated teams with RACI roles - vertical grouped layout
             if (target.teams && target.teams.length > 0) {
-                const RACI_COLORS_PRESENT = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)' };
-                const RACI_LABELS = { R: 'Responsible', A: 'Accountable', C: 'Consulted', I: 'Informed' };
-                const RACI_ORDER = ['R', 'A', 'C', 'I'];
+                const RACI_COLORS_PRESENT = { R: 'var(--accent-green)', A: 'var(--accent-yellow)', C: 'var(--pacific-blue)', I: 'var(--text-muted)', SS: 'var(--accent-coral, #FF6B6B)' };
+                const RACI_LABELS = { R: 'Responsible', A: 'Accountable', C: 'Consulted', I: 'Informed', SS: 'Shared Services' };
+                const RACI_ORDER = ['R', 'A', 'C', 'I', 'SS'];
 
                 // Group teams by role
                 const grouped = {};
@@ -2255,7 +2255,7 @@
                     row.style.cssText = 'display:flex; align-items:flex-start; gap:0.5rem;';
 
                     const roleBadge = document.createElement('span');
-                    roleBadge.style.cssText = `font-size:0.7rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:3px; min-width:1.8rem; text-align:center; background:${RACI_COLORS_PRESENT[role]}; color:${role === 'I' ? 'var(--text-light)' : 'var(--bg-dark)'}`;
+                    roleBadge.style.cssText = `font-size:0.7rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:3px; min-width:1.8rem; text-align:center; background:${RACI_COLORS_PRESENT[role]}; color:${(role === 'I' || role === 'SS') ? 'var(--text-light)' : 'var(--bg-dark)'}`;
                     roleBadge.textContent = role;
                     roleBadge.title = RACI_LABELS[role];
                     row.appendChild(roleBadge);
